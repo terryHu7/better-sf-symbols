@@ -1,6 +1,10 @@
 # Better SF Symbols
 
+English · [简体中文](README.zh-CN.md)
+
 **Live: https://sfsymbols.terryhu.workers.dev**
+
+![Better SF Symbols: paste an AI reply, see every SF Symbol in it laid out side by side as real pictures](docs/screenshot-en.png)
 
 Paste an AI reply, see every SF Symbol in it as a real picture, click one to copy it.
 
