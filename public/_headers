@@ -1,0 +1,51 @@
+# Cloudflare reads this at deploy time. vinext generates a minimal version of
+# this file only when one is not already here, so this replaces it — keep the
+# /assets/* rule.
+
+# Content-hashed by the bundler; the name changes when the bytes do.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# A symbol mask is immutable by construction: `name--weight.png` is one drawing
+# from one macOS release, and a new release adds files rather than editing them.
+# This is the whole traffic story — 7,988 files, and the visitor's second visit
+# should fetch none of them.
+/symbols/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The three pictures that live at a fixed path. They were falling through to the
+# default, which is `max-age=0, must-revalidate` — so og.png, half a megabyte of
+# it, was fetched in full by every social scraper on every share, and the favicon
+# was revalidated on every visit. Not `immutable`, because unlike /symbols/* the
+# name does not change when the bytes do: these are redrawn by
+# scripts/render_sfsymbols.swift and keep their filenames. An hour is long enough
+# to carry a link doing the rounds, short enough that a redraw goes live the same
+# afternoon.
+/og.png
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+/favicon.png
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+/bettermapit.png
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+
+# The reader pastes AI conversations and internal specs into this page, so the
+# promise that none of it leaves the browser is enforced here rather than just
+# claimed. The directives that carry that promise are `connect-src 'self'` (no
+# fetch, XHR, WebSocket or beacon to anywhere else) and `img-src 'self' data:`
+# (an image URL is an exfiltration channel too). A browser enforces both; it
+# does not have to take our word for anything.
+#
+# `script-src` and `style-src` allow inline out of necessity, not preference:
+# the SSR output carries 8 inline <script> blocks holding the React payload, and
+# the tile geometry is passed as inline style props. Without unsafe-inline the
+# page never hydrates and the site is blank. Hashes are not an option — the
+# payload changes every build — and vinext has no nonce support. The XSS risk
+# that buys back is small here: no server, no accounts, and nothing a visitor
+# types is ever shown to anyone else.
+#
+# These comments sit outside the rule block on purpose — an indented `#` is not
+# reliably a comment to Cloudflare's parser, it can read as a broken header.
+/*
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff

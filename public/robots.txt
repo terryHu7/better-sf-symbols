@@ -1,0 +1,14 @@
+# One page, and it should be findable: "sf symbols batch preview" and
+# 「SF Symbols 批量预览」 are long-tail terms nobody is competing for, and this
+# site answered 404 here until now.
+User-agent: *
+Allow: /
+
+# 7,988 monochrome mask PNGs. They are the product's artwork, not pictures worth
+# indexing — every one of them is a white shape on transparency, meaningless in
+# an image search and identical to Apple's own. Keeping crawlers out of them is
+# most of this file's point: it is the difference between a crawl of one page
+# and a crawl of eight thousand.
+Disallow: /symbols/
+
+Sitemap: https://sfsymbols.terryhu.workers.dev/sitemap.xml

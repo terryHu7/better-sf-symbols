@@ -1,0 +1,59 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/.vinext/
+/out/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# private working notes — not part of the public release
+/CLAUDE.md
+/.agents/
+
+# vercel
+.vercel
+
+# typescript
+next-env.d.ts
+/dist/
+/.wrangler/
+/outputs/
+/work/
+tsconfig.tsbuildinfo
+
+# 48 MB of generated artwork — 7,988 mask PNGs drawn from this machine's own
+# CoreGlyphs.bundle. Deliberately not tracked: they are a pure function of the
+# macOS release plus scripts/render_sfsymbols.swift, so `swift
+# scripts/render_sfsymbols.swift` reproduces every byte on any Mac. That is the
+# same property the whole catalogue story rests on.
+#
+# Everything else in public/ IS tracked, and the distinction matters: og.png and
+# favicon.png are also drawn by that script, but bettermapit.png is not
+# reproducible from anything here, and losing the folder wholesale would take it
+# with them.
+/public/symbols/

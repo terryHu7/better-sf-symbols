@@ -1,0 +1,4 @@
+interface:
+  display_name: "SF Symbols Preview"
+  short_description: "从当前 AI 回复自动提取并预览原生 SF Symbols"
+  default_prompt: "Use $preview-sf-symbols to extract SF Symbols from the latest AI reply and show me a native visual comparison."

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  One URL, because there is one page. It exists so the crawl starts from the
+  canonical address rather than from whichever variant somebody linked, and so
+  robots.txt has a sitemap to point at.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://sfsymbols.terryhu.workers.dev/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

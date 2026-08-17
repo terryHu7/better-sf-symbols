@@ -1,0 +1,1282 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --bg: #07090c;
+  --shell: #0a0e12;
+  --panel: #0c1116;
+  --panel-strong: #0e141a;
+  --surface: #121920;
+  --surface-hover: #171f28;
+  --text: #f1f5f8;
+  --muted: #a8b1bb;
+  /* Lifted from #74808c: at 4.70:1 on the tile background it only just cleared
+     AA, and it carries small text (the iOS badge, the counters). */
+  --quiet: #808d9a;
+  /* One step below --quiet, and it exists for exactly one line: the privacy
+     note in the footer. On the shell (#0a0e12) it is 4.8:1 — still AA. Do not
+     reuse it on a tile: that ground is lighter, which is why --quiet had to be
+     lifted off this very value in the first place. */
+  --faint: #74808c;
+  /*
+   * Three panels, three slightly different darks. The middle one is the
+   * darkest on purpose: it is the only panel whose job is to be looked at, and
+   * a symbol drawn in near-white reads hardest against the deepest ground. The
+   * two supports step up a percent or two and rotate a few degrees of hue —
+   * warm-neutral on the left where you type, cooler on the right where you
+   * glance. The steps are deliberately at the edge of visible: enough that the
+   * columns feel like separate places, not enough to read as three colours.
+   */
+  --panel-input: #0c1015;
+  --panel-preview: #080b10;
+  --panel-history: #0a0f15;
+  /*
+   * The header's light does not stop at the header. Each panel carries the
+   * same falloff across its top edge, so the four regions read as one lit
+   * surface with a seam in it rather than a bar sitting on three boxes.
+   * `background-attachment` stays at its default: the panels scroll, and this
+   * belongs to the panel's box, not to its content.
+   *
+   * Every stop is a length. Mixing a percentage in here is a real trap: `34%`
+   * of a tall panel resolves past the clamped px stop after it, and CSS then
+   * pins the out-of-order stop to its predecessor — which turns the fade into a
+   * hard horizontal edge across the panel.
+   */
+  --panel-top-light: linear-gradient(
+    to bottom,
+    rgba(96, 152, 226, 0.055),
+    rgba(96, 152, 226, 0.016) clamp(46px, 9vh, 96px),
+    transparent clamp(110px, 22vh, 230px)
+  );
+  --line: rgba(183, 205, 230, 0.14);
+  --line-strong: rgba(190, 211, 235, 0.23);
+  --line-soft: rgba(180, 202, 228, 0.085);
+  --blue: #4b8fe8;
+  --blue-soft: rgba(75, 143, 232, 0.13);
+  --green: #78d67f;
+  --green-soft: rgba(120, 214, 127, 0.11);
+  --amber: #e8b45f;
+  --radius-card: 14px;
+  --radius-control: 10px;
+  --radius-chip: 8px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", "Cascadia Code", Consolas, monospace;
+  --font-rounded: ui-rounded, "SF Pro Rounded", "SF Pro Display", -apple-system, "PingFang SC", sans-serif;
+
+  /*
+   * Fluid scale. The shell fills the viewport, so height is just as scarce as
+   * width on a laptop: every size below is driven by min(vh, vw) and shrinks
+   * when either axis is short, instead of being clipped.
+   */
+  /*
+   * Every bound below is `rem`, and the numbers are the old pixel values over
+   * 16 — 0.4375rem *is* 7px at the default root size, exactly. So at default
+   * settings this scale renders pixel for pixel what it always did.
+   *
+   * What changes is the reader who has set a larger default font size, which is
+   * what someone with poor eyesight actually uses (browser zoom is the other
+   * control, and that one always worked because it scales vw/vh too). Measured
+   * before this: root 16px → 32px moved *nothing* — seven sampled sizes and the
+   * page height all identical to the tenth of a pixel. The whole scale was px
+   * and vw, neither of which a font-size preference can reach, so the setting
+   * was silently discarded.
+   *
+   * The middle term stays viewport-driven: that is the part that keeps the
+   * shell inside one screen. Only the floors and ceilings follow the reader.
+   */
+  --u: clamp(0.4375rem, min(1.05vh, 0.72vw), 0.75rem);
+  --gap-xs: calc(var(--u) * 0.6);
+  --gap-sm: var(--u);
+  --gap-md: calc(var(--u) * 1.55);
+  --gap-lg: calc(var(--u) * 2.4);
+  --gap-xl: calc(var(--u) * 4);
+
+  /*
+   * The floors are not a formality — they are what this scale resolves to on
+   * the most common laptop there is. At 1512×744 the `min(vh, vw)` term lands
+   * under every floor here, so a 14" MacBook renders the *entire* interface at
+   * these numbers; at 1366×620 so does everything else. They were 10.5/11.5/
+   * 12.5/14/16.5/20, which put the language switch, the counters, the privacy
+   * line and the symbol names in the history at 10.5px on the screen most
+   * people read this on. Raise a floor and you are resizing the default, not
+   * the edge case.
+   */
+  --fs-xs: clamp(0.71875rem, min(1.45vh, 0.9vw), 0.8125rem);
+  --fs-sm: clamp(0.78125rem, min(1.62vh, 1.02vw), 0.90625rem);
+  --fs-md: clamp(0.84375rem, min(1.85vh, 1.16vw), 1rem);
+  --fs-lg: clamp(0.9375rem, min(2.1vh, 1.34vw), 1.15625rem);
+  --fs-xl: clamp(1.09375rem, min(2.6vh, 1.62vw), 1.375rem);
+  --fs-2xl: clamp(1.3125rem, min(3.3vh, 2.05vw), 1.875rem);
+  /* Height of the small controls in the header bar: language switch buttons
+     and the author links are the same size because they read the same token. */
+  --chip-h: clamp(1.6875rem, 3.6vh, 1.9375rem);
+
+  /* Control heights and padding travel with the type, or a reader who doubles
+     their font gets doubled words inside boxes that did not move. */
+  --control-h: clamp(2.125rem, min(5.4vh, 3.4vw), 2.875rem);
+  --panel-pad-x: clamp(1rem, 2.2vw, 2.25rem);
+  --panel-pad-y: clamp(1.125rem, 2.8vh, 2.25rem);
+
+  /*
+   * How narrow each panel may be dragged. These three are only the value of
+   * last resort — a reader who has never been here on a device with no stored
+   * measurement. `refreshPanelMinimums` overwrites them with what it measures,
+   * and `columnBootScript` restores the previous measurement before the first
+   * frame, so in practice these hold for one visit.
+   *
+   * They live on :root rather than on .app-shell for exactly that reason: a
+   * declaration on the shell would beat the value the boot script inherits down
+   * from <html>, and the floors would be a placeholder again.
+   *
+   * Measured, not invented: across 1280→2560 in both languages the measurement
+   * reports 300 / 458–560 for the first two, so those are the middle of that
+   * range. They used to be 340/340/240, far enough under the truth that the
+   * history column opened at 19.1% of the width and was hauled to ~25% the
+   * moment the real numbers arrived — 143px of jump at 1440×900. Do not read a
+   * design decision into them; the measurement always wins.
+   *
+   * The history floor is the exception, and 232px is not a middle: it is the
+   * measurement. A first visit has no history rows, so that panel's min-content
+   * is its empty state, which is narrower than `minColumnFloor[2]` at every one
+   * of those twelve samples — the constant is what the panel gets. It was 390
+   * while five demo rows were seeded there, and a placeholder above the truth
+   * clamps the first frame and releases it once the measurement lands, which is
+   * the jump this whole block exists to prevent.
+   */
+  --col-min-a: 300px;
+  --col-min-b: 460px;
+  --col-min-c: 232px;
+}
+
+* { box-sizing: border-box; }
+html { min-height: 100%; background: var(--bg); }
+body {
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(74, 103, 140, 0.105), transparent 34%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button, textarea, select { font: inherit; }
+button, select { color: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, textarea:focus-visible, select:focus-visible, [role="button"]:focus-visible {
+  outline: 2px solid rgba(74, 144, 255, 0.9);
+  outline-offset: 3px;
+}
+
+/* Surfaces the browser draws for us still belong to the design. Left at their
+   defaults, the selection flash and the scrollbars are the two places this page
+   would announce that nobody looked. */
+::selection { background: rgba(75, 143, 232, 0.34); color: #fff; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(183, 205, 230, 0.19);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(183, 205, 230, 0.34); background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The brand bar and the workbench, stacked. The bar is deliberately outside
+   .app-shell: `refreshPanelMinimums` sizes that grid's tracks to min-content,
+   and an element spanning all three columns would push its own width into the
+   measurement the drag clamp is built from. */
+.app-frame {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--shell);
+}
+/*
+ * The lit edge of the workbench. Everything here is CSS rather than an image
+ * on purpose: a near-black gradient is exactly the content 8-bit PNG/JPEG
+ * handles worst — large smooth falloffs in the darks come back as visible
+ * steps, and worst of all on OLED. The browser interpolates at high precision,
+ * so the same field is clean, free, and correct at any width.
+ *
+ * Layers, top to bottom: grain, two light sources, a settle into shadow at the
+ * lower edge, then the base. The lamp sits off-centre and *above* the bar, so
+ * only its lower falloff lands in frame — that is what makes it read as light
+ * arriving from somewhere rather than a blob drawn in the corner.
+ */
+.app-header {
+  position: relative;
+  flex: 0 0 auto;
+  padding: var(--panel-pad-y) var(--panel-pad-x);
+  background:
+    /* Grain, ~4%. Invisible as texture, but it dithers the gradient below and
+       is the difference between "smooth" and "banded" on a wide dark bar. */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E"),
+    radial-gradient(105% 300% at 16% -95%, rgba(75, 143, 232, 0.115), transparent 62%),
+    radial-gradient(70% 210% at 84% -70%, rgba(126, 176, 232, 0.05), transparent 58%),
+    linear-gradient(to bottom, transparent 52%, rgba(0, 0, 0, 0.26)),
+    var(--shell);
+  background-size: 140px 140px, auto, auto, auto, auto;
+}
+/* A rule that fades out at both ends instead of a full-width 1px line: the bar
+   is lit from the left, so its edge should catch the light the same way. */
+.app-header::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(183, 205, 230, 0.17) 9%,
+    rgba(183, 205, 230, 0.15) 58%,
+    rgba(183, 205, 230, 0.04) 88%,
+    transparent
+  );
+}
+
+.app-shell {
+  /* Column widths come from --col-a/b/c, which the drag handles rewrite as fr
+     weights. The floors below are only the pre-hydration guess: on mount
+     `refreshPanelMinimums` measures what each panel's content actually needs
+     and overwrites these three variables on this element, so the grid's floor
+     and the drag clamp are the same number by construction. That is what keeps
+     the left edge from ever sliding under the language switch.
+
+     The three fallbacks below are the no-JavaScript case *only*. With scripts
+     on, `columnBootScript` writes --col-a/b/c onto <html> before this element
+     is parsed — the stored widths when there are any, these same numbers when
+     there are not — so `defaultColumns` stays the single source of the ratio
+     and the first frame is never the wrong one. */
+  --handle-size: 9px;
+  width: 100%;
+  /* The frame owns the viewport height; the workbench takes what is left. */
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(var(--col-min-a), var(--col-a, 30.9fr))
+    var(--handle-size)
+    minmax(var(--col-min-b), var(--col-b, 50fr))
+    var(--handle-size)
+    minmax(var(--col-min-c), var(--col-c, 19.1fr));
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: var(--shell);
+  box-shadow: none;
+}
+.app-shell.is-resizing { cursor: col-resize; user-select: none; }
+.app-shell.is-resizing .panel { pointer-events: none; }
+
+.panel-resizer {
+  position: relative;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+/* The rule is drawn at its thick size and scaled down, so thickening it on
+   hover is a compositor transform rather than an animated `width`. */
+.panel-resizer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--line-soft);
+  transform: scaleX(0.334);
+  transition: background-color 150ms ease, transform 170ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* The visible rule is 1px; the grab target is not. Reaching past the track on
+   both sides gives the pointer something to catch without moving the layout. */
+.panel-resizer::after {
+  content: "";
+  position: absolute;
+  inset: 0 -5px;
+}
+.panel-resizer:hover::before,
+.panel-resizer:focus-visible::before,
+.panel-resizer.is-active::before {
+  background: var(--blue);
+  transform: scaleX(1);
+}
+.panel-resizer:focus-visible { outline: 0; }
+
+.panel {
+  min-width: 0;
+  min-height: 0;
+  padding: var(--panel-pad-y) var(--panel-pad-x);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.17) transparent;
+}
+
+/* Mark, name, tagline, language switch — one line. The bar runs the full width
+   of the page now, so stacking the tagline under the name left the whole right
+   half empty. The tagline takes the elastic track, so it is the part that
+   gives when the window narrows. */
+.brand-block {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--gap-md);
+  row-gap: var(--gap-xs);
+}
+/* No separator between the name and the tagline: an em dash in front of a line
+   of Chinese reads as the character 一, so the brand line looked like it had a
+   stray word in it. The grid's column-gap already keeps the two apart. */
+/* A frame, not a plate: the eyes keep the two-tone they have in the tab, and
+   the box around them is a hairline over the panel rather than the old black
+   tile — so the mark reads as a logo without putting a black square back into
+   a corner of the page. */
+.brand-mark {
+  width: clamp(40px, min(6.4vh, 4.2vw), 60px);
+  height: clamp(40px, min(6.4vh, 4.2vw), 60px);
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7f9fb;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.brand-mark .brand-glyph { width: 74%; height: 74%; }
+/* -0.045em suited the closed-up "BetterSymbolIt". A name with real spaces in
+   it needs them to survive, or "Better SF Symbols" sets as one long word. */
+.brand-name { margin: 0; color: #fff; font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -0.02em; }
+/* keep-all so a wrap lands on a space or a 、 instead of inside a word: CJK
+   breaks between any two characters by default, and the narrow viewport was
+   splitting 复制粘贴 across two lines. */
+/* Two steps below the name on the same scale (--fs-lg vs --fs-2xl): on one line
+   with the name it is a subtitle, not a footnote.
+   Tracking is *positive* here, unlike everywhere else on this page. Negative
+   tracking is a Latin display trick, and this line is mostly 汉字 — it applies
+   to every character including the two spaces that hold 「AI」 and 「SF」 apart
+   from the Chinese around them, so -0.015em was quietly eating the one piece of
+   spacing the sentence depends on. +0.01em opens the CJK rhythm instead and
+   widens those two gaps by the same fraction.
+   Weight 500 rather than 600 for the same reason it is smaller: light text on a
+   dark ground already reads heavier than its number, and PingFang has a real
+   Medium at 500 while 600 is between its cuts. */
+/* `keep-all` stops CJK breaking between any two characters, which is what kept
+   复制粘贴 from being split across lines. It assumed the line still had spaces
+   in it to break at; with the spaces gone the whole tagline became one
+   unbreakable run — measured at 320px: 306px of text in a 223px box, and it
+   pushed the header, the frame and the document itself to 386px wide.
+   `anywhere`, not `break-word`: only `anywhere` also lets min-content shrink, so
+   the parent stops being dragged wider. It is a last resort by definition — a
+   break here happens only on a line that would otherwise overflow, so nothing
+   changes on any width that already fits. */
+.brand-tagline { margin: 0; color: var(--muted); font-size: var(--fs-lg); font-weight: 500; letter-spacing: 0.01em; line-height: 1.45; word-break: keep-all; overflow-wrap: anywhere; }
+
+/* Author links and the language switch travel together in the last track, so
+   neither needs to name a column number — that is what pushed the tagline past
+   the switch when the bar gained a track. */
+/* One height for the whole cluster: --chip-h is the language switch's button
+   height, and a link is that plus the switch's own 3px padding and 1px border,
+   so the three controls stay the same size as the fluid scale moves them. */
+.brand-actions { display: flex; align-items: center; gap: var(--gap-sm); justify-self: end; }
+.brand-link {
+  width: calc(var(--chip-h) + 8px);
+  height: calc(var(--chip-h) + 8px);
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  background: #090e13;
+  color: var(--muted);
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+.brand-link:hover { border-color: var(--line-strong); background: var(--surface); color: #fff; }
+/* BetterMapIt's own app icon, in the same chip and at the same size as the
+   GitHub mark, linking to its App Store page. Background image rather than <img>: the link already carries
+   the label, so the artwork is decoration with nothing to announce. Slightly
+   held back at rest so a full-colour app icon does not shout next to a
+   monochrome glyph and the language switch. */
+/* Edge to edge inside its frame: at 33px an inset icon is unreadable, and the
+   padding was buying nothing. The hairline border stays so it is still the
+   same chip as the GitHub link. */
+.brand-link.is-art { padding: 0; overflow: hidden; }
+.brand-link-art {
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--radius-control) - 1px);
+  background: url("/bettermapit.png") center / cover no-repeat;
+}
+.lang-switch { padding: 3px; display: flex; gap: 2px; justify-self: end; border: 1px solid var(--line-soft); border-radius: var(--radius-control); background: #090e13; }
+.lang-switch button { min-height: var(--chip-h); padding: 0 var(--gap-md); border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
+.lang-switch button:hover { color: #fff; }
+.lang-switch button:active { transform: scale(0.96); }
+.lang-switch button.is-active { background: rgba(255, 255, 255, 0.12); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+.brand-link:active { transform: scale(0.95); }
+.brand-link, .lang-switch button { transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease, transform 120ms ease; }
+
+.input-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-top-light), var(--panel-input);
+}
+/* The block grows into whatever the panel has left, so the paste target fills
+   the column instead of leaving a third of it empty above the button.
+   `1 0 auto`, never `1 1 auto`: the shrink factor lets a flex column squeeze
+   the field below its own content, and with `overflow-y: hidden` on the
+   textarea that silently swallows the bottom of a long paste. */
+.input-block {
+  flex: 1 0 auto;
+  /* No top margin: the brand moved to the header bar, and this block's title
+     is one of the three that have to start on the same line. */
+  display: flex;
+  flex-direction: column;
+}
+/* The three panel titles are one row of the workbench, so all three header
+   rows are the same height and centre their contents: whatever rides beside a
+   title — the counter, the copy controls, the clear button — cannot push its
+   title off the line the other two sit on. */
+.panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-md); min-height: var(--control-h); }
+.panel-title-row h2, .results-header h2, .history-panel h2 {
+  margin: 0;
+  font-size: var(--fs-xl);
+  line-height: 1.15;
+  font-weight: 680;
+  letter-spacing: -0.035em;
+}
+.panel-title-row > span { color: var(--quiet); font-family: var(--font-mono); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+textarea {
+  width: 100%;
+  /* Grows to fill the column when the text is short and past it when the text
+     is long; the panel scrolls. See the note on .input-block. */
+  flex: 1 0 auto;
+  min-height: clamp(132px, 26vh, 266px);
+  /* field-sizing grows the box with the text; the panel scrolls, so a long
+     paste is never hidden behind an inner scrollbar. */
+  max-height: none;
+  margin-top: var(--gap-md);
+  padding: var(--gap-lg) var(--gap-md);
+  display: block;
+  field-sizing: content;
+  resize: vertical;
+  overflow-y: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-card);
+  outline: 0;
+  background: #080d11;
+  color: #eceff4;
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  line-height: 1.85;
+  caret-color: #62a1ff;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+/* Firefox has no `field-sizing` yet, so the box never grows: paired with
+   `overflow-y: hidden` above, a long paste there simply disappeared. Give those
+   browsers a scrollable box instead of an invisible one. */
+@supports not (field-sizing: content) {
+  textarea { overflow-y: auto; max-height: min(58vh, 560px); }
+}
+textarea:hover { border-color: rgba(190, 211, 235, 0.32); }
+textarea:focus { border-color: var(--blue); background: #0a0f14; box-shadow: 0 0 0 3px var(--blue-soft), inset 0 1px 0 rgba(255, 255, 255, 0.025); }
+textarea::placeholder { color: var(--quiet); }
+/* The textarea now grows without limit, so the action stays pinned to the
+   bottom of the panel instead of scrolling out of reach below a long paste.
+   The bar is opaque so text scrolling past it stays hidden. */
+.input-actions {
+  position: sticky;
+  /* Full-bleed to the panel edges so nothing scrolls through beside or below
+     the bar — the panel's own padding is part of its scrollport. */
+  bottom: calc(var(--panel-pad-y) * -1);
+  z-index: 1;
+  margin: var(--gap-lg) calc(var(--panel-pad-x) * -1) calc(var(--panel-pad-y) * -1);
+  padding: var(--gap-sm) var(--panel-pad-x) var(--panel-pad-y);
+  background: linear-gradient(to top, #0b1014 76%, rgba(11, 16, 20, 0));
+}
+/* The page's bottom rule, and the quietest line on it: findable when a stranger
+   goes looking for it, invisible the rest of the time. It recedes by colour and
+   weight, never by size — --fs-xs is already the smallest token and its floor
+   (11.5px) is what every common laptop actually renders.
+   Right-aligned and outside .app-shell, so it belongs to the page rather than
+   to any one of the three panels. Its own top hairline is the same fading rule
+   as the header's, run in reverse, so the workbench is closed at both ends. */
+.app-footer {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--gap-sm) var(--panel-pad-x);
+  background: var(--shell);
+}
+.app-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(183, 205, 230, 0.04) 12%,
+    rgba(183, 205, 230, 0.13) 42%,
+    rgba(183, 205, 230, 0.15) 91%,
+    transparent
+  );
+}
+.app-footer p {
+  margin: 0;
+  color: var(--faint);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+/* ── Soul button ──────────────────────────────────────────────────────────
+   A CSS port of BetterMapIt's "Map it!" keycap (ProminentButtonStyle): an
+   opaque cap sitting on a darker side wall, sinking into it on press. Every
+   number below comes from that button — travel 3.5 / wall 4.5, cap shades at
+   HSB brightness x1 / x0.78 (x0.85 / x0.65 pressed), wall at x0.55 / x0.33,
+   and the `prominent` motion profile's squash (1.015 x 0.925, -0.7deg). */
+.soul-button {
+  --soul-travel: 3.5px;
+  --soul-wall: 4.5px;
+  --soul-cap-top: #2b74d4;
+  --soul-cap-bottom: #225aa5;
+  --soul-cap-top-pressed: #2563b4;
+  --soul-cap-bottom-pressed: #1c4b8a;
+  --soul-wall-mid: #0c3975;
+  --soul-wall-dark: #042046;
+  width: 100%;
+  padding: 0;
+  position: relative;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  isolation: isolate;
+  /* Release overshoots slightly — the closest CSS gets to the spring
+     (response .26 / damping .58) the iOS button uses. */
+  transition: transform 220ms cubic-bezier(0.34, 1.4, 0.64, 1), filter 180ms ease;
+}
+.soul-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 999px;
+  background: #296ec9;
+  opacity: 0.12;
+  filter: blur(22px);
+  transform: scale(0.96, 1.06);
+  transition: opacity 180ms ease, filter 180ms ease, transform 180ms ease;
+}
+.soul-button::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  z-index: 1;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, var(--soul-wall-mid), var(--soul-wall-dark));
+  transform: translateY(var(--soul-wall));
+}
+.soul-cap {
+  position: relative;
+  z-index: 2;
+  min-height: clamp(42px, 6.6vh, 56px);
+  padding: 0 var(--gap-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-sm);
+  border-radius: 999px;
+  background: linear-gradient(to bottom, var(--soul-cap-top), var(--soul-cap-bottom));
+  color: #fff;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    0 8px 18px rgba(0, 0, 0, 0.08);
+  transition: transform 220ms cubic-bezier(0.34, 1.4, 0.64, 1), background 160ms ease, box-shadow 180ms ease;
+}
+.soul-cap svg { flex: 0 0 auto; }
+.soul-label {
+  font-family: var(--font-rounded);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.soul-button:hover:not(:disabled) .soul-glow { opacity: 0.2; }
+.soul-button:active:not(:disabled) {
+  transform: translateY(var(--soul-travel)) scale(1.015, 0.925) rotate(-0.7deg);
+  filter: brightness(1.015) saturate(1.05);
+  transition-duration: 90ms;
+}
+.soul-button:active:not(:disabled) .soul-cap {
+  transform: translateY(var(--soul-travel));
+  background: linear-gradient(to bottom, var(--soul-cap-top-pressed), var(--soul-cap-bottom-pressed));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    0 12px 22px rgba(0, 0, 0, 0.14);
+  transition-duration: 90ms;
+}
+.soul-button:active:not(:disabled) .soul-glow { opacity: 0.26; filter: blur(10px); transform: scale(1.05, 0.9); }
+/* The glint that sweeps the cap on press. */
+.soul-cap::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  bottom: -50%;
+  left: 0;
+  width: 44%;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+  opacity: 0;
+  transform: translateX(-140%) rotate(24deg);
+  pointer-events: none;
+}
+.soul-button:active:not(:disabled) .soul-cap::after { animation: soul-glint 480ms ease-out; }
+@keyframes soul-glint {
+  0% { opacity: 0; transform: translateX(-140%) rotate(24deg); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(320%) rotate(24deg); }
+}
+.soul-button:disabled { cursor: default; filter: grayscale(0.55); opacity: 0.4; }
+.soul-button:disabled .soul-glow { opacity: 0; }
+.soul-button:focus-visible { outline: 2px solid rgba(74, 144, 255, 0.9); outline-offset: 5px; border-radius: 999px; }
+
+.results-panel {
+  position: relative;
+  padding-left: clamp(18px, 2.7vw, 44px);
+  padding-right: clamp(18px, 2.7vw, 44px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--panel-top-light), var(--panel-preview);
+}
+.results-header { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-md) var(--gap-lg); min-height: var(--control-h); }
+.result-controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--gap-xs); }
+.result-controls label, .copy-all-button {
+  min-height: var(--control-h);
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--panel-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.result-controls label:hover, .copy-all-button:hover:not(:disabled) { border-color: var(--line-strong); background: var(--surface); }
+/* Every control on this page answers a press, not just the soul button. */
+.copy-all-button:active:not(:disabled) { transform: scale(0.975); }
+.result-controls select {
+  min-height: calc(var(--control-h) - 4px);
+  padding: 0 calc(var(--gap-md) * 1.5) 0 var(--gap-md);
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f1f3f6;
+  cursor: pointer;
+  font-size: var(--fs-md);
+  transition: opacity 140ms ease;
+}
+.result-controls option { background: #11151a; color: #fff; }
+/* Held for the frames before the client's own choice arrives — see the history
+   list for the same idea. A native select is as wide as its widest option, not
+   its selected one, so nothing here moves while the word is invisible. */
+html[data-format-pending] .copy-format select { opacity: 0; }
+.copy-format { padding-left: var(--gap-sm); color: var(--muted); font-size: var(--fs-sm); font-weight: 550; }
+.copy-format > span { white-space: nowrap; }
+.copy-format select { padding-left: 4px; font-weight: 550; }
+.copy-all-button { min-width: max-content; padding: 0 var(--gap-md); color: var(--muted); cursor: pointer; font-size: var(--fs-sm); font-weight: 550; white-space: nowrap; }
+.copy-all-button:disabled { opacity: 0.35; cursor: default; }
+
+.result-list {
+  /* Column count and tile edge are computed in `planTiles` from this list's
+     real box, then handed down as --tile-columns / --tile-size. CSS cannot do
+     this on its own: `auto-fill` with a fixed minimum jumps the tiles *smaller*
+     each time another column happens to fit (568px → 657px of panel used to
+     take the tiles from 239px down to 187px), and it knows nothing about the
+     height it is allowed to fill. Every size inside a tile derives from
+     --tile-size, so the glyph and the name scale with the card. */
+  container-type: inline-size;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* A scrollbar appearing after a replan would change the width that replan
+     just measured; reserving the gutter stops the two from chasing each other. */
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  /* Exactly the tracks the planner asked for, centred as one block. This was a
+     centred flex wrap once, and the difference shows on the last row: a wrap
+     centres each line on its own, so a leftover tile floated in the gap between
+     the columns above it instead of starting a new column. A grid keeps the
+     columns real, so the remainder lines up under the first one.
+     Centring is not lost — `planTiles` never returns more columns than there
+     are results, so a short set is exactly as wide as its tiles. */
+  display: grid;
+  grid-template-columns: repeat(var(--tile-columns, 3), var(--tile-size, 125px));
+  justify-content: center;
+  /* From the top, not centred in the panel. Centring the grid was tried and
+     looked worse: with four results the row floated 200px below the controls
+     that act on it, and the empty space stopped reading as room for more
+     symbols and started reading as a gap. */
+  align-content: start;
+  gap: var(--gap-sm);
+  /* Room for the lifted border and shadow of a hovered tile at the edges. */
+  padding: 3px;
+  margin: calc(var(--gap-md) - 3px) -3px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.17) transparent;
+}
+.result-list[hidden] { display: none; }
+/* The compact-row track, restored before the first frame from the last plan.
+   `data-layout` cannot do this job on its own: the server renders it, and the
+   server has never measured this list. React removes the attribute the moment
+   it has, and from then on [data-layout] is the only thing that decides. */
+html[data-tile-rows] .result-list { grid-template-columns: minmax(0, 1fr); }
+/* Compact rows: one track, the full width. Set from the same measurement that
+   feeds `planTiles` rather than from the container query below, because the
+   list is the container and a container cannot query itself. */
+.result-list[data-layout="rows"] { grid-template-columns: minmax(0, 1fr); }
+/* Density no longer picks the tile size — the planner does. It still sets how
+   much air sits between tiles: three results want room, a dozen want tightness. */
+.result-list[data-density="compact"] { gap: calc(var(--gap-sm) * 0.8); }
+.result-list[data-density="dense"] { gap: var(--gap-xs); }
+.result-card {
+  width: var(--tile-size, 125px);
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  padding: max(5px, calc(var(--tile-size, 125px) * 0.05));
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  align-items: center;
+  gap: calc(var(--tile-size, 125px) * 0.035);
+  border: 1px solid var(--line);
+  border-radius: clamp(10px, calc(var(--tile-size, 125px) * 0.105), 22px);
+  background: var(--panel);
+  color: inherit;
+  cursor: copy;
+  font: inherit;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.026);
+  user-select: none;
+  transition: border-color 170ms ease, background-color 170ms ease, transform 170ms ease, box-shadow 170ms ease;
+  /* The reveal is this product's one authored moment: press Symbol it! and the
+     glyphs resolve into place. Exponential ease-out, staggered along the row. */
+  animation: tile-in 460ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--tile-index, 0) * 28ms);
+}
+@keyframes tile-in {
+  from { opacity: 0; transform: translateY(7px) scale(0.96); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+.result-card:hover, .result-card:focus-visible {
+  border-color: var(--blue);
+  background: #101820;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgba(0, 4, 9, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+.result-card:active { transform: scale(0.992); }
+.result-card.is-copied { border-color: rgba(120, 214, 127, 0.55); background: rgba(120, 214, 127, 0.05); }
+.result-icon {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+/* The glyph claims the whole icon row and 58% of the tile's width, whichever
+   is smaller; the mask is `contain`, so the artwork stays proportional inside
+   whatever box that leaves. There is deliberately no px ceiling — the old
+   `min(58%, 84px)` stranded a small icon in the middle of a 288px tile. */
+.result-icon .symbol-glyph { width: 58%; height: 100%; }
+.symbol-glyph {
+  width: var(--glyph-size, 28px);
+  height: var(--glyph-size, 28px);
+  display: block;
+  flex: 0 0 auto;
+  background: currentColor;
+  color: currentColor;
+  transform: scale(1);
+  transition: transform 170ms cubic-bezier(0.2, 0, 0, 1), color 170ms ease;
+}
+.result-card:hover .result-icon .symbol-glyph, .result-card:focus-visible .result-icon .symbol-glyph { transform: scale(1.1); color: #fff; }
+/* Two-tone, exactly like favicon.png: a mask carries one colour, so the fill
+   and the outline are two layers sharing one box. `.brand-glyph` is what gets
+   sized; the layers just fill it. */
+.brand-glyph { position: relative; display: block; width: var(--glyph-size, 28px); height: var(--glyph-size, 28px); }
+.brand-glyph .symbol-glyph { position: absolute; inset: 0; width: 100%; height: 100%; }
+.brand-glyph .symbol-glyph + .symbol-glyph { color: var(--bg); }
+.result-content { width: 100%; min-width: 0; display: grid; justify-items: center; gap: 1px; }
+/* The name is the thing you came to read and the thing you copy, so it is set
+   at semibold and sized off the tile — not off the viewport, which never moved
+   when you dragged the column that actually changed the card. */
+.result-content > code {
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  /* Three lines, because the tile is a fixed 125px now and two lines cut
+     `rectangle.portrait.on.rectangle.portrait` off mid-word. The text block is
+     auto-sized, so short names still leave the extra room to the glyph. */
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  color: #f4f6f9;
+  font-family: var(--font-mono);
+  font-size: clamp(0.71875rem, calc(var(--tile-size, 125px) * 0.098), 1.0625rem);
+  font-weight: 650;
+  line-height: 1.28;
+  letter-spacing: -0.012em;
+  overflow-wrap: anywhere;
+}
+/* 601 of Apple's symbols are trademarks that may only stand for the product
+   they depict. Always visible, unlike the copy hint — it is a constraint on
+   whether you may ship the thing at all, not an affordance. */
+.restriction-badge {
+  position: absolute;
+  top: max(4px, calc(var(--tile-size, 125px) * 0.04));
+  left: max(4px, calc(var(--tile-size, 125px) * 0.04));
+  width: 1.55em;
+  height: 1.55em;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(232, 180, 95, 0.14);
+  color: var(--amber);
+  font-size: clamp(9px, calc(var(--tile-size, 125px) * 0.072), 13px);
+  cursor: help;
+}
+.restriction-badge svg { width: 1em; height: 1em; }
+
+/* The whole tile is the copy target; this is only a hint, so it stays out of
+   the way until the tile is hovered, focused, or just copied. */
+.copy-affordance {
+  position: absolute;
+  top: var(--gap-sm);
+  right: var(--gap-sm);
+  width: clamp(28px, 4.4vh, 36px);
+  height: clamp(28px, 4.4vh, 36px);
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  background: rgba(12, 17, 22, 0.9);
+  color: #cfd7df;
+  opacity: 0;
+  transition: opacity 160ms ease, color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+.result-card:hover .copy-affordance, .result-card:focus-visible .copy-affordance {
+  opacity: 1;
+  border-color: rgba(92, 155, 255, 0.45);
+  background: var(--blue-soft);
+  color: #fff;
+}
+.result-card.is-copied .copy-affordance {
+  opacity: 1;
+  border-color: rgba(120, 214, 127, 0.4);
+  background: var(--green-soft);
+  color: var(--green);
+}
+.copy-affordance svg { flex: 0 0 auto; width: clamp(16px, 2.4vh, 20px); height: clamp(16px, 2.4vh, 20px); }
+
+/* Below two tiles per row a square becomes an absurd slab and the name drops
+   out of sight, so the tiles turn into compact rows instead. Driven by the
+   list's own width, which is what the drag handles actually change. */
+@container (max-width: 300px) {
+  /* `planTiles` returns a single column below this width, so the row layout and
+     the computed tile agree instead of fighting over the track size. The track
+     itself is switched by [data-layout="rows"] above, because an element cannot
+     answer its own container query — this block styles the cards inside the
+     container, not the container. */
+  .result-card {
+    width: 100%;
+    aspect-ratio: auto;
+    min-height: clamp(54px, 8vh, 68px);
+    padding: var(--gap-xs) var(--gap-sm);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    align-items: center;
+    justify-items: start;
+    gap: var(--gap-sm);
+    text-align: left;
+  }
+  .result-icon { width: clamp(32px, 4.8vh, 42px); height: clamp(32px, 4.8vh, 42px); }
+  .result-icon .symbol-glyph { width: 100%; }
+  .result-content { justify-items: start; text-align: left; gap: 1px; }
+  /* One line, and the name is the whole point of the row — the viewport-derived
+     size this used to carry bottomed out at 11px on the narrow screens that are
+     the only ones to ever see this layout. */
+  .result-content > code { -webkit-line-clamp: 1; font-size: var(--fs-sm); }
+  .copy-affordance { position: static; opacity: 0; }
+}
+
+/* A grid, so the rows are separated by their own gap instead of running
+   together, and each row wraps rather than letting a long name and its
+   suggestion collide in a narrow column. */
+.invalid-list { flex: 0 0 auto; margin-top: var(--gap-md); padding: var(--gap-md); display: grid; gap: var(--gap-xs); border: 1px solid rgba(232, 180, 95, 0.25); border-radius: var(--radius-card); background: rgba(232, 180, 95, 0.045); }
+.invalid-list > p { margin: 0 0 var(--gap-xs); color: var(--amber); font-size: var(--fs-sm); font-weight: 680; }
+.invalid-list > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--gap-xs) var(--gap-md); color: var(--muted); font-size: var(--fs-sm); }
+.invalid-list code { font-family: var(--font-mono); font-weight: 550; color: #f2d49e; }
+/* The suggested name wears its own picture. `.symbol-glyph` is `display: block`
+   by default, which would break the line here, and it is sized off the tile
+   everywhere else — inside a line of text it takes its size from the text. It
+   shares the name's colour so the two read as one object rather than as a
+   picture standing next to a word. */
+.invalid-list .symbol-glyph {
+  width: 1.5em;
+  height: 1.5em;
+  display: inline-block;
+  margin-right: 0.32em;
+  color: #f2d49e;
+  vertical-align: -0.36em;
+}
+.empty-state { flex: 1 1 auto; min-height: clamp(140px, 24vh, 300px); display: grid; place-items: center; align-content: center; padding: var(--gap-lg); border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--panel); text-align: center; }
+.empty-state > .symbol-glyph { width: clamp(32px, 5vh, 48px); height: clamp(32px, 5vh, 48px); color: var(--quiet); }
+.empty-state h3 { margin: var(--gap-md) 0 0; font-size: var(--fs-lg); font-weight: 650; }
+.empty-state p { margin: var(--gap-xs) 0 0; color: var(--muted); font-size: var(--fs-sm); }
+.empty-state button {
+  margin-top: var(--gap-md);
+  padding: var(--gap-sm) var(--gap-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  font-weight: 550;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 120ms ease;
+}
+.empty-state button:hover { border-color: var(--line-strong); background: var(--surface-hover); }
+.empty-state button:active { transform: scale(0.97); }
+
+.inline-toast {
+  flex: 0 0 auto;
+  width: fit-content;
+  /* The truncation notice is the longest string this box can hold, and the box
+     is `fit-content` — without a ceiling it runs off the side of a phone. */
+  max-width: 100%;
+  min-height: clamp(32px, 4.8vh, 42px);
+  margin: var(--gap-md) auto 0;
+  padding: var(--gap-xs) var(--gap-md) var(--gap-xs) var(--gap-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: #151c23;
+  color: #f1f3f6;
+  font-size: var(--fs-sm);
+  font-weight: 550;
+  opacity: 0;
+  transform: translateY(5px);
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.inline-toast.is-visible { opacity: 1; transform: translateY(0); }
+.inline-toast span { width: 1.9em; height: 1.9em; display: grid; place-items: center; border-radius: 50%; background: #13251b; color: var(--green); }
+/* "Nothing found" and "copy failed" are not successes; they do not get the tick. */
+.inline-toast[data-tone="notice"] span { background: #26211a; color: var(--amber); }
+
+.history-panel { display: flex; flex-direction: column; min-height: 0; overflow: hidden; background: var(--panel-top-light), var(--panel-history); }
+.history-panel > header { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: var(--gap-md); min-height: var(--control-h); }
+.history-panel > header button {
+  padding: var(--gap-xs) var(--gap-sm);
+  margin-right: calc(var(--gap-sm) * -1);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  border: 0;
+  border-radius: var(--radius-chip);
+  background: transparent;
+  color: var(--blue);
+  cursor: pointer;
+  font-size: var(--fs-md);
+  font-weight: 550;
+  transition: background-color 150ms ease, color 150ms ease, transform 120ms ease;
+}
+.history-panel > header button:hover:not(:disabled) { background: var(--blue-soft); color: #7cb0f5; }
+.history-panel > header button:active:not(:disabled) { transform: scale(0.96); }
+.history-panel > header button svg { width: 1.05em; height: 1.05em; }
+.history-panel > header button:disabled { opacity: 0.35; cursor: default; }
+/* The server can only render the empty state, and a browser with stored rows is
+   about to replace it — 「还没有历史记录」 withdrawn under the reader's eye. When
+   the boot script sees stored rows it holds the list back for the few frames
+   until React has them, so the first thing read is the true thing. The space is
+   reserved either way: opacity, never display. */
+html[data-history-pending] .history-list { opacity: 0; }
+.history-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  transition: opacity 140ms ease;
+  overscroll-behavior: contain;
+  margin-top: var(--gap-lg);
+  display: grid;
+  /* Every row as tall as its own card. With the default `auto` the browser
+     handed all rows one height, so a row whose chips wrapped onto a second line
+     drew that line straight through its own bottom border. */
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: var(--gap-md);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.17) transparent;
+}
+.history-card {
+  width: 100%;
+  min-height: 0;
+  padding: var(--gap-md) calc(var(--gap-md) * 2.6) var(--gap-md) var(--gap-md);
+  position: relative;
+  display: grid;
+  /* One track, and it may not exceed the card. Left implicit, the track is
+     `auto` — sized to the widest child's max-content, which for a wrapping row
+     of chips is the sum of all of them — so the card grew past its own column
+     and the panel clipped it. Invisible at the default type size, because the
+     column happens to be wide enough; it appears the moment a reader enlarges
+     their font, which is when a truncated name costs the most. `justify-items:
+     start` still left-aligns everything inside the track. */
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  justify-items: start;
+  gap: var(--gap-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--panel);
+  cursor: pointer;
+  text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.024);
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+.history-card:hover { border-color: var(--line-strong); background: var(--surface-hover); transform: translateY(-1px); }
+.history-card:active { transform: scale(0.99); }
+.history-time { color: var(--muted); font-size: var(--fs-md); font-weight: 600; letter-spacing: -0.01em; }
+/* `justify-self: stretch`, against the card's `justify-items: start`.
+   That start is right for the timestamp and the arrow — they should sit at the
+   left edge, not spread — but a grid item aligned to `start` is sized to its own
+   max-content, and for a wrapping row of chips max-content is *all of them laid
+   end to end*. So this box was always wider than its track, and `max-width: 100%`
+   on a chip resolved against that wider box, which is why the ellipsis on the
+   name never got a chance and the card was clipped by the panel instead.
+   Filling the track is what makes every percentage below mean the right thing. */
+.history-symbols { display: flex; flex-wrap: wrap; gap: var(--gap-xs); min-width: 0; justify-self: stretch; }
+/* `min-width: 0` on the chip, or the ellipsis on the name inside it never gets
+   a chance: a flex item's default `min-width: auto` refuses to shrink below its
+   content, so the chip pushes past the column instead and the card is clipped
+   by the panel. Invisible at the default type size — the column is wide enough
+   — and it appears the moment a reader enlarges their font, which is exactly
+   when they can least afford a name to be cut off. */
+.history-chip {
+  min-width: 0;
+  max-width: 100%;
+  min-height: clamp(26px, 3.9vh, 34px);
+  padding: 0 var(--gap-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-chip);
+  background: #090f14;
+}
+.history-chip .symbol-glyph { width: clamp(14px, 2.1vh, 18px); height: clamp(14px, 2.1vh, 18px); }
+/* The name is what the row is *about*, so it is set a step up from the rest of
+   the chrome — this list is scanned for a symbol, not for its timestamp. */
+.history-chip code { max-width: 100%; overflow: hidden; color: #e9edf2; font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.history-arrow { position: absolute; top: 50%; right: var(--gap-md); display: grid; color: #aeb7c1; transform: translateY(-50%); }
+.history-arrow svg { width: clamp(16px, 2.5vh, 21px); height: clamp(16px, 2.5vh, 21px); }
+.history-empty { padding: var(--gap-lg) var(--gap-md); border: 1px dashed var(--line); border-radius: var(--radius-card); color: var(--muted); text-align: center; }
+.history-empty p { margin: 0; color: #e8ebef; font-size: var(--fs-md); }
+
+/* Narrow desktop and tablets: two columns, history moves under the fold and the
+   page scrolls. Dragging is off here — the columns are no longer side by side. */
+@media (max-width: 1240px) {
+  body { padding: 0; }
+  .app-frame { height: auto; min-height: 100dvh; }
+  .app-shell {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    margin: 0;
+    grid-template-columns: minmax(clamp(260px, 30vw, 340px), 0.38fr) minmax(0, 0.62fr);
+    overflow: visible;
+  }
+  .panel-resizer { display: none; }
+  .results-panel { border-left: 1px solid var(--line-soft); }
+  /* The panels are no longer their own scrollports, so the action bar goes
+     back into the flow instead of sticking to the window. */
+  .input-actions { position: static; margin: var(--gap-lg) 0 0; padding: 0; background: none; }
+  .panel, .results-panel, .history-panel { overflow: visible; }
+  .results-panel, .history-panel { display: block; }
+  .result-list, .history-list { overflow: visible; }
+  /* No `flex-direction: column` on .results-header here, on purpose: stacking
+     it centred the word 「预览」 over left-aligned controls while 「输入」 and
+     「历史记录」 stayed left — three panel titles that are meant to read as one
+     line of the workbench, with one of them wandering. The base rule already
+     wraps when the row genuinely runs out of width. */
+  .history-panel { grid-column: 1 / -1; border-top: 1px solid var(--line); border-left: 0 !important; }
+  /* Every row the reader has, wrapped into three columns. Capping this at
+     three cards hid history that the phone layout shows in full — the tidier
+     strip was not worth a tablet quietly having less history than a phone. */
+  .history-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 840px) {
+  /* Too narrow for one line: the tagline drops under the name again, and the
+     dash goes with it — a separator only separates things on the same row.
+     Every child is placed by hand here. Leaving the actions to auto-placement
+     is what used to break this bar: with rows 1 and 2 both full, the cluster
+     fell to a row of its own *in the first column*, which then had to be as
+     wide as the cluster — and that pushed the name and the tagline halfway
+     across the screen. */
+  .brand-block { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .brand-mark { grid-area: 1 / 1 / 3 / 2; }
+  .brand-name { grid-area: 1 / 2 / 2 / 3; }
+  .brand-actions { grid-area: 1 / 3 / 2 / 4; }
+  .brand-tagline { grid-area: 2 / 2 / 3 / 4; }
+  /* The controls stay their own size. Stretching the select to the full row
+     made a 650px-wide box holding the word 「名称」 — the widest control on the
+     page, for the least of what it does. */
+  .result-controls { flex-wrap: wrap; }
+  .copy-all-button { justify-content: center; }
+}
+
+/* Stacked. This is deliberately not the same breakpoint as the header above: a
+   tablet in portrait is 768–834px, wide enough to keep the input beside the
+   preview — which is the whole point of the layout, both halves in view at
+   once — while being far too narrow for the brand bar's single line. Stacking
+   at 840 handed an iPad a 733px-wide row holding 524px of tiles. */
+@media (max-width: 700px) {
+  .app-shell { display: block; border-radius: 0; }
+  .results-panel, .history-panel { border-left: 0; border-top: 1px solid var(--line); }
+  /* Side by side, the preview panel is given wider gutters than its neighbours
+     — it is the one being looked at. Stacked, that same rule puts 「预览」 two
+     pixels right of 「输入」 and 「历史记录」, which is not breathing room, it is
+     a stagger. */
+  .results-panel { padding-left: var(--panel-pad-x); padding-right: var(--panel-pad-x); }
+  .history-list { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 580px) {
+  /* Vertical padding is charged four times on a stacked page — once per panel
+     plus the bar — so the desktop figure costs a phone most of a fold. */
+  :root { --panel-pad-y: clamp(0.875rem, 2vh, 1.375rem); }
+  .app-shell { width: 100%; min-height: 100dvh; margin: 0; border: 0; border-radius: 0; }
+  /* A phone gets two rows, not three. The two author links are the part that
+     comes off: mark + name + the whole cluster is ~400px of a 358px row at
+     390px wide, so the cluster used to take a third row of its own — and that
+     row was two chips leading somewhere else plus a switch, occupying a fold of
+     a screen that has none to spare. Without them the switch fits beside the
+     name at the 840px placement (measured at 390px: mark 40 + name ~169 +
+     switch ~84 + gaps ≈ 320 of 358), so the bar is the mark on the left and
+     name / tagline stacked beside it, with the switch on the title's right.
+     The links are only hidden here — every wider viewport still shows them. */
+  .brand-actions .brand-link { display: none; }
+  /* The mark is sized to the block it stands beside, the way an app icon is
+     sized to a title and its subtitle. At the desktop floor of 40px it was a
+     small square centred in an 80px-tall two-line block, with air above and
+     below it and none of it doing anything — the icon read as floating rather
+     than as the left edge of the bar. */
+  .brand-mark { width: 54px; height: 54px; }
+  /* Lighter, not smaller. The switch was a 95×42 bordered slab beside the
+     title — the second-heaviest thing in a bar whose job is to say the name of
+     the site. What comes off here is the *frame*: the group's border, plate and
+     padding go, leaving two words with the active one in a pill, which is all
+     the group ever needed to say. The touch target does not move — each button
+     keeps its --chip-h height and is floored at 40px wide, so the pair still
+     tiles a 40px-tall strip with no dead space between them. */
+  .lang-switch { padding: 0; border-color: transparent; background: transparent; }
+  .lang-switch button { min-width: 2.5rem; padding: 0 var(--gap-xs); font-size: var(--fs-xs); }
+  /* The copy controls come off the preview header too. On a phone the header
+     was a title with a 「复制：名称」 select and a 「复制全部」 button crowded
+     onto the same line above the tiles — three controls' worth of chrome over
+     the one thing the reader came to look at. Neither is load-bearing here:
+     tapping a tile is the copy, and the format the select changes is stored, so
+     a phone keeps whatever was chosen (the name, unless it was changed on a
+     desktop). What a phone cannot do is copy all of them at once — that is the
+     one function this hides, and it is the one least likely to be wanted from a
+     phone. `display: none` takes it off the accessibility tree with it, which
+     is correct: it is not available at this width, not merely invisible. */
+  .result-controls { display: none; }
+  /* Nothing to hover with, so the copy hint cannot wait to be revealed. */
+  .copy-affordance { opacity: 1; }
+  .history-list { grid-template-columns: 1fr; }
+}
+
+/* Touch has no hover to reveal things with and no pointer precision to spare,
+   so the small controls grow. Keyed on the input rather than the width: an iPad
+   in landscape is 1024px wide and still all thumbs. */
+@media (hover: none) {
+  /* Floors for a finger, not sizes for a layout — the fluid scale still moves
+     everything above them. Measured target by target: the format select was
+     88×30 and the clear button 59×29 before this.
+     --chip-h was 34px, and that was simply under the floor this project sets
+     for itself: measured with touch emulation on, the two language buttons came
+     out 40×34 at 390, 768 and 320 — the only controls on the page failing the
+     40px rule, and the switch has no padding of its own left to make up the
+     difference since it lost its frame. 2.5rem is 40px at the default root.
+     (The format select measures 88×36 and looks like a third failure; it is not
+     — it sits inside a 135×40 <label> that wraps it, so the finger has 40px.) */
+  :root { --chip-h: 2.5rem; --control-h: clamp(2.5rem, min(5.4vh, 6vw), 2.875rem); }
+  /* The links no longer need padding on top of a target that already clears the
+     floor; keeping the old +10px would make them 50px and unbalance the bar. */
+  .brand-link { width: var(--chip-h); height: var(--chip-h); }
+  .history-panel > header button { min-height: 2.5rem; padding-inline: var(--gap-md); }
+  /* Nothing lights up under a finger, and the tap highlight is turned off, so
+     the press itself has to be the feedback — deeper than the pointer version,
+     which only ever has to confirm what the cursor already showed. */
+  .result-card:active { transform: scale(0.965); }
+  .history-card:active { transform: scale(0.98); }
+}
+
+/* Very short viewports (split screen, small laptops in landscape): stop pinning
+   the shell to the viewport and let the page scroll normally. */
+@media (min-width: 1241px) and (max-height: 600px) {
+  .app-frame { height: auto; min-height: 100dvh; }
+  .app-shell { height: auto; min-height: 100dvh; overflow: visible; }
+  .panel, .results-panel, .history-panel { overflow: visible; }
+  .results-panel, .history-panel { display: block; }
+  .result-list, .history-list { overflow: visible; }
+}
+
+/* Stacked, the toast sits at the end of a column the reader has already
+   scrolled past: you tap a tile near the top of the grid and the confirmation
+   appears somewhere below the fold. Pinned to the window it lands where the
+   thumb already is. It is `pointer-events: none` at all times, so it never
+   takes a tap from what is under it. */
+@media (max-width: 840px) {
+  .inline-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap-xl));
+    z-index: 5;
+    /* Fixed, so the percentage is of the viewport, not of the panel it came
+       from: the long notice wraps inside the screen instead of running off it. */
+    max-width: calc(100% - var(--gap-xl));
+    margin: 0;
+    transform: translate(-50%, 8px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+  .inline-toast.is-visible { transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

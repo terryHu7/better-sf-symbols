@@ -1,0 +1,15 @@
+# Read by Cloudflare when it builds the asset manifest, exactly like _headers:
+# what is listed here is never uploaded and never served.
+#
+# .DS_Store is the reason this file exists. Finder writes one into public/ the
+# moment anyone opens the folder, the build copies it to dist/client, and the
+# deploy publishes it — https://sfsymbols.terryhu.workers.dev/.DS_Store answered
+# 200 once. Deleting the file only fixes it until the next time someone looks at
+# the directory; this fixes it for good.
+#
+# Three files in dist/client are served and stay that way. Listing this file
+# here was tried and does not work — wrangler publishes it regardless — and
+# `_headers` and `.vite/manifest.json` must not be listed at all: the first is
+# what puts the immutable cache on /symbols/*, the second is the runtime asset
+# manifest. None of the three says anything that is not already public.
+.DS_Store
