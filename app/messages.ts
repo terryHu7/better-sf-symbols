@@ -45,7 +45,11 @@ export const siteOrigin = "https://sfsymbols.terryhu.workers.dev";
 
 /** The author's links in the header bar. URLs are not copy — no translation. */
 export const authorLinks = {
-  github: "https://github.com/terryHu7",
+  // The repo, not the author's profile. Same rule as the BetterMapIt chip next
+  // to it: the icon shows where you land. A GitHub logo on a site with public
+  // source means "the source of this site" to everyone who clicks it, and a
+  // profile page makes them go hunting for the repo they were promised.
+  github: "https://github.com/terryHu7/better-sf-symbols",
   /** The App Store listing itself, not a page about it. The chip already wears
    *  BetterMapIt's own icon, so the link now lands where that icon leads. */
   betterMapIt: "https://apps.apple.com/cn/app/bettermapit/id6775102616",
@@ -145,11 +149,18 @@ const zh: Messages = {
   // 「AI」「SF」前后。真会折行的是手机那一档，改这句之前用 390px probe 看一眼断点。
   brand: { tagline: "从此告别在AI工具和SF符号之间来回复制粘贴👋" },
   // 这两条现在只给读屏用（tooltip 已去掉），所以只说去哪儿，不说客套话。
-  links: { github: "作者的 GitHub", betterMapIt: "BetterMapIt（作者的另一个 app）" },
+  // The label has to name the destination, and the destination changed: this
+  // is the project's repo now, not the author's profile.
+  links: { github: "这个网站的源码", betterMapIt: "BetterMapIt（作者的另一个 app）" },
   input: {
     title: "输入",
     fieldLabel: "包含 SF Symbol 名称的文本",
-    placeholder: "例如：",
+    // The ghost's whole first line. It names what the example *is* rather than
+    // just saying "例如：" above it — one line instead of two, which is a line
+    // of phone height back. It stays here rather than in `exampleText` because
+    // pressing the button on an empty field puts `exampleText` into the field
+    // as real input, and "例如" has no business being in the text you paste.
+    placeholder: "例如三种分享按钮：",
     // 曾经是 `Show them all!`（对齐 BetterMapIt 的 `Map it!`），换成中文动词是
     // 有意放弃那条品牌口令：读者里有很多人不读英文，而这是页面上唯一的主按钮。
     // 所以这一项现在**跟着语言翻译**，别再改回两边同一个字符串。
@@ -228,23 +239,23 @@ const zh: Messages = {
   // candidates for the same button demonstrates the choice you actually came
   // here to make, and none of the three tells you what it looks like.
   //
-  // It has to read like something an AI actually said, reasons and all: a
-  // trimmed list reads as *hand-written*, and then the page looks like it needs
-  // you to tidy the input first. A reason on every candidate and the closing
-  // hedge are what make it recognisable — and mildly tiresome, which is the
+  // It has to read like something an AI actually said, reasons and all: a bare
+  // list of three names reads as *hand-written*, and then the page looks like
+  // it needs you to tidy the input first. The reason hanging off every
+  // candidate is what makes it recognisable — and mildly tiresome, which is the
   // point, since wading through that is the work being taken away. Do not
-  // tighten it into a clean list; do not let it past five lines either
-  // (phones). It had a 「好问题！」 opener for about a minute; the author cut
-  // it. Flattery is the one AI tic that reads as a joke at the AI's expense
-  // rather than as the chore — leave the opener off.
+  // tighten it into a clean list. Two things the author cut, both deliberate:
+  // a 「好问题！」 opener (flattery is the one AI tic that reads as a joke at
+  // the AI's expense rather than as the chore) and a closing "confirm your use
+  // case first" hedge (it padded the phone layout for a line that named no
+  // symbol). Four lines is the ceiling — the field is `field-sizing: content`,
+  // so every line of ghost text pushes the button further down the phone.
   //
   // 应用 not `app`: bare `app` is a real symbol name and would show up as a
   // fourth tile. Same trap in English for `forward` / `doc` / `case`.
-  exampleText: `分享按钮常见的有这么几个：
-square.and.arrow.up 是系统标准，几乎所有应用都在用；
-arrow.up.doc 更强调把内容导出去；
-arrowshape.turn.up.right 更接近"转发"的语义。
-建议你先确认使用场景再决定。`,
+  exampleText: `square.and.arrow.up 最常见；
+arrow.up.doc 偏向分享文件；
+arrowshape.turn.up.right 偏向转发给别人。`,
 };
 
 const en: Messages = {
@@ -262,11 +273,11 @@ const en: Messages = {
   // Same non-breaking bind as the Chinese line, for the one two-word proper
   // noun in it: a wrap between "SF" and "Symbols" reads as two products.
   brand: { tagline: "No more copy-pasting between AI tools and SF\u00A0Symbols 👋" },
-  links: { github: "The author's GitHub", betterMapIt: "BetterMapIt (the author's other app)" },
+  links: { github: "Source code for this site", betterMapIt: "BetterMapIt (the author's other app)" },
   input: {
     title: "Input",
     fieldLabel: "Text containing SF Symbol names",
-    placeholder: "For example:",
+    placeholder: "For example, three share buttons:",
     // The number moved up here from the line under the field, which used to
     // report it beside the button rather than on it. It is `liveAnalysis` over
     // `pendingText` — the example when the field is blank — so the count is
@@ -340,11 +351,9 @@ const en: Messages = {
   // case" would quietly add a fourth tile. Re-run the tokenizer against
   // scripts/symbol-names.txt after any edit; the three names below are all the
   // preview should contain.
-  exampleText: `Here are the common choices for a share button:
-square.and.arrow.up is the system standard and what most users expect;
-arrow.up.doc emphasises exporting the content somewhere;
-arrowshape.turn.up.right reads more like passing it to someone else.
-I'd confirm the exact context before deciding.`,
+  exampleText: `square.and.arrow.up is the one you see most;
+arrow.up.doc leans toward sharing a file;
+arrowshape.turn.up.right leans toward passing it on to someone.`,
 };
 
 export const messages: Record<Locale, Messages> = { zh, en };
