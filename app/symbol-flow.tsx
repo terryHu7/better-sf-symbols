@@ -1139,23 +1139,12 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
           <h1 className="brand-name">{brandName}</h1>
           <p className="brand-tagline">{t.brand.tagline}</p>
           <div className="brand-actions">
-            {/* No `title`: both marks say what they are — a GitHub logo and
-                BetterMapIt's own app icon — so the tooltip was reading the
-                picture back out loud. `aria-label` stays, and it is not the
-                same thing: without it these two links have no name at all for
-                a screen reader, because their only content is an icon. */}
-            <a className="brand-link" href={authorLinks.github} target="_blank" rel="noreferrer" aria-label={t.links.github}>
-              <GithubLogo size={19} weight="fill" aria-hidden="true" />
-            </a>
-            {/* BetterMapIt's own icon, linking to its App Store page — the
-                chip looks like exactly the thing it leads to. */}
-            <a className="brand-link is-art" href={authorLinks.betterMapIt} target="_blank" rel="noreferrer" aria-label={t.links.betterMapIt}>
-              <span className="brand-link-art" aria-hidden="true" />
-            </a>
-            {/* Same shape as the two links, but it is not one — it stays on a
-                phone, where the links come off. No `title`, for the same reason
-                they have none: the palette says what this is about, and the
-                list it opens says the rest. */}
+            {/* First in the cluster, and the only one of the four that changes
+                this page rather than leaving it. Same chip as the two links but
+                not one of them — `.brand-link` is what the phone breakpoint
+                hides, and on a phone this is one of the two controls that stay.
+                No `title`, for the same reason the links have none: the palette
+                says what this is about, and the list it opens says the rest. */}
             <div className="theme-picker" ref={themePickerRef}>
               <button
                 ref={themeButtonRef}
@@ -1189,6 +1178,19 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
                 </div>
               )}
             </div>
+            {/* No `title`: both marks say what they are — a GitHub logo and
+                BetterMapIt's own app icon — so the tooltip was reading the
+                picture back out loud. `aria-label` stays, and it is not the
+                same thing: without it these two links have no name at all for
+                a screen reader, because their only content is an icon. */}
+            <a className="brand-link" href={authorLinks.github} target="_blank" rel="noreferrer" aria-label={t.links.github}>
+              <GithubLogo size={19} weight="fill" aria-hidden="true" />
+            </a>
+            {/* BetterMapIt's own icon, linking to its App Store page — the
+                chip looks like exactly the thing it leads to. */}
+            <a className="brand-link is-art" href={authorLinks.betterMapIt} target="_blank" rel="noreferrer" aria-label={t.links.betterMapIt}>
+              <span className="brand-link-art" aria-hidden="true" />
+            </a>
             <div className="lang-switch" role="group" aria-label={t.language.label}>
               {locales.map((option) => (
                 <button

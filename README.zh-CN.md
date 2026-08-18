@@ -2,60 +2,71 @@
 
 [English](README.md) · 简体中文
 
-**线上：https://sfsymbols.terryhu.workers.dev**
+[![Better SF Symbols](docs/screenshot-zh.png)](https://sfsymbols.terryhu.workers.dev)
 
-![Better SF Symbols：把一段 AI 回复粘进去，回复里提到的每个 SF Symbol 都并排铺开成真图](docs/screenshot-zh.png)
+### → [sfsymbols.terryhu.workers.dev](https://sfsymbols.terryhu.workers.dev)
 
-粘贴一段 AI 回复，把里面提到的每个 SF Symbol 都变成真实图案，点一下就能复制。
+粘一段 AI 回复，里面提到的每个 SF Symbol 都画出来并排铺开，点一下复制名称。
 
-AI 只能给你**名字**——“用 `square.and.arrow.up`，或者 `arrow.up.doc`”。光看名字看不出长什么样，于是你得把每个名字复制到 SF Symbols app 里再切回来。这个网站删掉的就是这一整趟来回：把整段回复贴进来，符号自动被识别，真图并排铺开，点一下就能复制。默认复制的是名称——那正是要粘回 AI 已经写好的字符串字面量里的东西——预览区旁边的格式开关能换成 `Image(systemName:)`、`UIImage(systemName:)` 或 `NSImage(systemSymbolName:)`，选择会记住，下次还是它。
+## 它省掉的那趟来回
 
-一切都在浏览器里跑。粘贴的内容不会被上传——由 `worker/index.ts` 里的 `connect-src 'self'` 强制执行，不是口头承诺。
+AI 给的只有名字：*「分享用 `square.and.arrow.up`，或者 `arrow.up.doc`，也可以
+`arrowshape.turn.up.right`。」*
 
-## 运行
+三个候选，对着同一颗按钮。SF Symbols.app 的搜索框一次只问一个问题，比三个就得搜三次、切三次。
+你不是看不清，是记不住上一个长什么样。
+
+整段贴进来就行。三个并排铺开，看一眼就选完了。
+
+点一下复制的是**名称**——那正是要粘回 AI 已经写好的字符串字面量里的东西。预览区上方那个开关能换成
+`Image(systemName:)`、`UIImage(systemName:)` 或 `NSImage(systemSymbolName:)`，选过一次就记住。
+
+粘进去的内容不出浏览器。`worker/index.ts` 发的是 `connect-src 'self'`，这一页就算想上传也发不出去。
+
+内置五套暗色配色：默认那套，加上 Dark Modern、GitHub Dark 和 Catppuccin Mocha，取值都来自各自项目
+自己公布的规格。
+
+## 跑起来
 
 ```bash
 npm install
-npm run dev            # http://localhost:3000
-npm test               # 先构建，再校验 SSR 输出和磁贴几何
-npm run lint
+npm run dev     # http://localhost:3000
+npm test        # 先构建，再校验 SSR 输出和磁贴几何
 ```
 
-## 符号目录
+## 符号是哪来的
 
-全部 7,988 个名字、对应的 iOS 版本号和图案，都是**直接从 macOS 本身生成的**——Apple 没有提供符号 API，但每台 Mac 都自带一份权威名单，在 `CoreGlyphs.bundle` 里。两份都不曾手工改过。
+7,988 个名字、它们的 iOS 版本、601 条商标限制，以及全部图案，都是**从 macOS 自己生成的**，
+两份产物都不许手工改。
 
 ```bash
-node scripts/sync-symbol-catalog.mjs   # 名字 + 版本号 + 商标限制（几秒）
-swift scripts/render_sfsymbols.swift   # 7,988 张 mask 图 + favicon + OG 卡片（约 65 秒，需要一台 Mac）
+node scripts/sync-symbol-catalog.mjs   # 目录（几秒）
+swift scripts/render_sfsymbols.swift   # 7,988 张图 + favicon + 分享卡（约 65 秒，需要 Mac）
 ```
 
-因为数据源是操作系统本身，目录会跟着系统一起更新：在装了新版 macOS 的机器上把这两条命令跑一遍，当年新增的符号就自动进来了。SF Symbols 不在系统字体的私有区里（`SFNS.ttf` 里只有一个 PUA 码位），Apple 也没有提供 API，所以图案只能来自一台 Mac，没有别的来源。
+<details>
+<summary>为什么必须是 Mac，以及它为什么不会过期</summary>
 
-## 部署
+Apple 没有符号 API，但每台 Mac 都带着 SF Symbols.app 读的那份名单，就在
+`/System/Library/CoreServices/CoreGlyphs.bundle` 里——名字、发布年份、601 条商标限制原文。
+两个生成器读的是同一个文件，所以「名字认得出」和「图存在」不可能对不上。
 
-```bash
-npm run build
-npx wrangler deploy
-```
+因为源头是操作系统，目录跟着系统一起更新：换一台装了更新 macOS 的机器把两条命令跑一遍，
+那一年的新符号就在里面了，别的什么都不用动。
 
-一个带静态资源的 Cloudflare Worker——SSR 仍然保留，所以界面语言依旧跟着请求的 `Accept-Language` 走。Wrangler 配置由 Vite 插件生成到 `dist/server/wrangler.json`，worker 名字取自 `package.json` 的 `name`。
+图只能在 Mac 上出。SF Symbols **不在**系统字体的私有区里——`SFNS.ttf` 的 cmap 里
+`>= U+F0000` 只有一个码位——所以网页拿不到矢量数据，没有第二条路。
 
-安全响应头写在 `worker/index.ts` 里，**不是** `public/_headers`——Cloudflare 只把那个文件应用在静态资源响应上，写在那里的 CSP 永远到不了服务端渲染出来的 HTML。`_headers` 仍然负责 `/symbols/*` 的缓存。改完任何响应头之后，去查线上的真实结果：
-
-```bash
-curl -sI https://sfsymbols.terryhu.workers.dev | grep -i content-security-policy
-```
+</details>
 
 ## 目录结构
 
-| 路径 | 是什么 |
+| 路径 | |
 |---|---|
-| `app/` | 整个产品。`symbol-flow.tsx` 是界面，`messages.ts` 装着所有面向用户的文案 |
-| `scripts/` | 目录和图案的生成脚本，外加自验工具 `ui-probe.mjs` |
-| `tests/` | SSR 输出、源码不变量、磁贴几何的测试 |
-| `public/symbols/` | 生成出来的图案——可丢弃，由 Swift 脚本重新渲染 |
+| `app/` | 产品本身。`symbol-flow.tsx` 是整个界面，`messages.ts` 装着所有用户可见的字 |
+| `scripts/` | 两个生成器，外加 `ui-probe.mjs`——用真实浏览器量真实布局 |
+| `tests/` | SSR 输出、源码不变量、磁贴几何 |
+| `public/symbols/` | 生成物，删了能重来 |
 
-这个项目没用到的脚手架残留：`app/chatgpt-auth.ts`、`db/`、`drizzle*`、`examples/d1/`。
-
-`.openai/hosting.json` 看着像残留，其实不是——`vite.config.ts` 引入了它，`build/sites-vite-plugin.ts` 也会拷贝它，删掉会导致 `npm run build` 直接失败。它是构建输入，不是部署目标。
+`app/chatgpt-auth.ts`、`db/`、`drizzle*`、`examples/d1/` 是脚手架残留，一处都没引用。
+`.openai/hosting.json` 长得像残留，其实不是：`vite.config.ts` 在构建时会 import 它。

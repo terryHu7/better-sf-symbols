@@ -507,6 +507,16 @@ test("all five palettes declare the same tokens, and the stored one is on screen
     assert.ok(strings.includes(`"${name}"`), `themeNames is missing ${name}`);
   }
 
+  // The cluster's order, asked for by name: palette, source, BetterMapIt,
+  // language. It is not decoration — the two ends are the two controls a phone
+  // keeps, and the pair in the middle is what comes off at 580px, so the order
+  // is what makes the phone bar read as "theme … language" with nothing
+  // reflowing around a gap.
+  const cluster = /<div className="brand-actions">([\s\S]*?)\n          <\/div>/.exec(view)?.[1] ?? "";
+  const order = [...cluster.matchAll(/className="(theme-picker|brand-link|brand-link is-art|lang-switch)"/g)]
+    .map((m) => m[1]);
+  assert.deepEqual(order, ["theme-picker", "brand-link", "brand-link is-art", "lang-switch"]);
+
   // …and the chip survives the phone, where the two author links do not.
   const phone = /@media \(max-width: 580px\) \{[\s\S]*?\n\}/.exec(css)?.[0] ?? "";
   assert.doesNotMatch(phone, /theme-toggle \{ display: none/);
