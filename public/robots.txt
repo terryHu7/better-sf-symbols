@@ -1,6 +1,9 @@
-# One page, and it should be findable: "sf symbols batch preview" and
-# 「SF Symbols 批量预览」 are long-tail terms nobody is competing for, and this
-# site answered 404 here until now.
+# One page, and it should be findable. Both titles carry the query someone
+# would actually type — 「SF Symbols 图标符号」 on the Chinese side, "sf symbols
+# preview" on the English one — and both `meta.description`s repeat it in their
+# first few words. That is deliberate and it is written down beside the strings
+# in app/messages.ts; a title rewrite that drops those words is a real cost, not
+# a wording preference. This file answered 404 until it existed at all.
 User-agent: *
 Allow: /
 

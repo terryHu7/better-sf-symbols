@@ -11,7 +11,11 @@ import { brandName, messages, resolveLocale, siteOrigin } from "./messages";
  * controls, so the select and the scrollbars are drawn dark too.
  */
 export const viewport: Viewport = {
-  themeColor: "#07090c",
+  // The default theme's page ground. It cannot follow the toggle — this is a
+  // meta tag the server writes, and the theme is a browser preference it has no
+  // way of knowing — but both palettes are near-black here (#0d0d10 / #07090c),
+  // so the phone's chrome matches either way.
+  themeColor: "#0d0d10",
   colorScheme: "dark",
 };
 

@@ -177,8 +177,11 @@ func renderFavicon(name: String, destination: URL, side: Int = 512) throws {
         return configured
     }
 
-    // --bg from globals.css: the outline is the site's ink, not a foreign black.
-    let ink = NSColor(srgbRed: 0x07 / 255, green: 0x09 / 255, blue: 0x0c / 255, alpha: 1)
+    // --bg from globals.css, and it must be the *default* theme's --bg: a
+    // favicon is drawn once and served to every reader, whichever palette they
+    // picked. Ink & amber is the default, so #0d0d10 — it was #07090c, which is
+    // midnight's, and midnight stopped being the default.
+    let ink = NSColor(srgbRed: 0x0d / 255, green: 0x0d / 255, blue: 0x10 / 255, alpha: 1)
     let sclera = try layer(name, .white)
     let outline = try layer("\(name).inverse", ink)
 
@@ -316,12 +319,24 @@ func renderOpenGraph(destination: URL) throws {
     NSGraphicsContext.current = context
     context.imageInterpolation = .high
 
-    // --bg, then the same top glow the page body carries.
-    NSColor(srgbRed: 0x07 / 255, green: 0x09 / 255, blue: 0x0c / 255, alpha: 1).setFill()
+    // The default theme's --bg and --body-glow (ink & amber), not midnight's —
+    // one card is served to everyone, so it can only be the palette a reader
+    // gets before they have picked one. **Re-run this script if the default
+    // theme's raw values ever move**; nothing else notices.
+    //
+    // The glow is the card's own number, like the symbol band's — a share card
+    // gets recompressed and shrunk to timeline size, and the page's 0.1 does not
+    // survive that. But it takes the **accent** hue (245,165,36 = --accent-rgb)
+    // rather than --body-glow's dimmed (150,118,70), and that is the whole
+    // lesson from the first attempt: a dimmed warm is a *desaturated* warm, and
+    // desaturated warm lifted 2.5x does not read as a lamp, it reads as dirt.
+    // Midnight got away with the same lift because blue-grey at that level still
+    // reads as a dark blue room. Saturation is what buys the alpha here.
+    NSColor(srgbRed: 0x0d / 255, green: 0x0d / 255, blue: 0x10 / 255, alpha: 1).setFill()
     NSRect(origin: .zero, size: canvas).fill()
     if let glow = NSGradient(colors: [
-        NSColor(srgbRed: 74 / 255, green: 103 / 255, blue: 140 / 255, alpha: 0.26),
-        NSColor(srgbRed: 74 / 255, green: 103 / 255, blue: 140 / 255, alpha: 0),
+        NSColor(srgbRed: 245 / 255, green: 165 / 255, blue: 36 / 255, alpha: 0.13),
+        NSColor(srgbRed: 245 / 255, green: 165 / 255, blue: 36 / 255, alpha: 0),
     ]) {
         // Fill the whole canvas and push the centre to the top edge. Drawing
         // into a smaller rect clips the fade before it reaches zero, which
@@ -350,9 +365,12 @@ func renderOpenGraph(destination: URL) throws {
         )
     }
 
-    // The mark, on the same rounded tile as the favicon.
+    // The mark, on the same rounded tile as the favicon. The fill is what
+    // `.brand-mark` composites to in the browser — rgba(255,255,255,0.04) over
+    // --shell #17171b — so the card's mark and the header's are the same
+    // colour, not two guesses at "slightly lighter than the ground".
     let tile = NSRect(x: canvas.width / 2 - 66, y: 432, width: 132, height: 132)
-    NSColor(srgbRed: 0x12 / 255, green: 0x19 / 255, blue: 0x20 / 255, alpha: 1).setFill()
+    NSColor(srgbRed: 0x20 / 255, green: 0x20 / 255, blue: 0x24 / 255, alpha: 1).setFill()
     NSBezierPath(roundedRect: tile, xRadius: 30, yRadius: 30).fill()
     NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.14).setStroke()
     let tileStroke = NSBezierPath(roundedRect: tile.insetBy(dx: 0.5, dy: 0.5), xRadius: 30, yRadius: 30)
@@ -360,10 +378,12 @@ func renderOpenGraph(destination: URL) throws {
     tileStroke.stroke()
     // Two-tone, like the favicon and the header mark: one mark everywhere.
     draw(symbol: "eyes", rect: tile.insetBy(dx: 26, dy: 40), color: .white)
+    // Same colour the web mark's second layer takes: `.brand-glyph
+    // .symbol-glyph + .symbol-glyph { color: var(--bg) }`.
     draw(
         symbol: "eyes.inverse",
         rect: tile.insetBy(dx: 26, dy: 40),
-        color: NSColor(srgbRed: 0x07 / 255, green: 0x09 / 255, blue: 0x0c / 255, alpha: 1)
+        color: NSColor(srgbRed: 0x0d / 255, green: 0x0d / 255, blue: 0x10 / 255, alpha: 1)
     )
 
     func centered(_ text: String, font: NSFont, color: NSColor, tracking: CGFloat, baseline: CGFloat) {
@@ -382,14 +402,21 @@ func renderOpenGraph(destination: URL) throws {
     centered(
         "Better SF Symbols",
         font: NSFont.systemFont(ofSize: 78, weight: .semibold),
-        color: .white,
+        // --text, not pure white: the page's brightest type is #f5f5f7.
+        color: NSColor(srgbRed: 0xf5 / 255, green: 0xf5 / 255, blue: 0xf7 / 255, alpha: 1),
         tracking: -1.6,
         baseline: 320
     )
+    // Three beats, and the last one is the correction: it said "Copy the code"
+    // for months while the product copied the *name* by default — the card was
+    // the last place still promising the wrong thing (CLAUDE.md, first line).
+    // The middle beat carries the English title's phrase, so the tab, the
+    // header and the share card all say one thing.
     centered(
-        "Paste an AI reply. See every symbol. Copy the code.",
+        "Paste an AI reply. Preview them all. Copy the name.",
         font: NSFont.systemFont(ofSize: 31, weight: .regular),
-        color: NSColor(srgbRed: 0xa8 / 255, green: 0xb1 / 255, blue: 0xbb / 255, alpha: 1),
+        // --muted.
+        color: NSColor(srgbRed: 0xad / 255, green: 0xad / 255, blue: 0xb8 / 255, alpha: 1),
         tracking: 0,
         baseline: 254
     )

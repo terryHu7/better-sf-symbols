@@ -26,13 +26,14 @@ test("server-renders the finished Symbol Flow product in Chinese for zh readers"
   const html = await response.text();
   assert.match(html, /<html lang="zh-CN"/);
   // 「·」, not an ASCII hyphen: a `-` between Chinese characters reads as a
-  // minus sign. The suffix does not repeat 「SF Symbol」 — the brand half has
-  // already said it once, and a tab title has no room to say it twice.
-  assert.match(html, /<title>Better SF Symbols · 批量预览<\/title>/);
-  // No spaces at all in the Chinese tagline (asked for). The \u00A0 that used to
-  // bind 「AI 工具」 and 「SF 符号」 went with them, so a phone may now break at
-  // either Latin/CJK boundary — measured at 390px rather than assumed.
-  assert.match(html, /从此告别在AI工具和SF符号之间来回复制粘贴/);
+  // minus sign. The suffix does not repeat the brand half's 「SF Symbols」, but
+  // it does say 「符号」 again — that half is English and answers no Chinese
+  // query, so 「图标符号」 is the only searchable word this title has.
+  assert.match(html, /<title>Better SF Symbols · 一网打尽图标符号<\/title>/);
+  // Not one Latin character in the Chinese tagline, so none of the old
+  // break-point care (\u00A0, no spaces at all) has anything left to protect:
+  // it fits one phone line because it is short, measured at 390px.
+  assert.match(html, /一网打尽，告别低效/);
   assert.match(html, /历史记录/);
 
   // One <h1>, and it is the product's name. It used to be 「输入」, which told a
@@ -115,8 +116,10 @@ test("falls back to English for everyone else", async () => {
   const html = await response.text();
 
   assert.match(html, /<html lang="en"/);
-  assert.match(html, /<title>Better SF Symbols — Batch Preview<\/title>/);
-  assert.match(html, /No more copy-pasting between AI tools and SF\u00A0Symbols/);
+  assert.match(html, /<title>Better SF Symbols — Preview Them All<\/title>/);
+  // The title's skeleton, not its whole phrase: the title spends its verb on
+  // the searchable word ("Preview"), the tagline keeps the punchy one.
+  assert.match(html, /Catch them all\. No more busywork/);
   // The soul button's label is localized now — it used to be the untranslated
   // brand phrase, so pin it to the label element rather than to the page.
   assert.match(html, /class="soul-label">Preview 3 symbols</);
@@ -135,7 +138,7 @@ test("a chosen language is answered by the server, not swapped in after paint", 
   // A reader on a Chinese machine who picked English must get English HTML.
   const english = await (await render("zh-CN,zh;q=0.9", "sf-locale=en")).text();
   assert.match(english, /<html lang="en"/);
-  assert.match(english, /<title>Better SF Symbols — Batch Preview<\/title>/);
+  assert.match(english, /<title>Better SF Symbols — Preview Them All<\/title>/);
   assert.doesNotMatch(english, /告别/);
 
   const chinese = await (await render("en-US,en;q=0.9", "theme=dark; sf-locale=zh")).text();
@@ -214,6 +217,15 @@ test("keeps adaptive density, local history, and responsive behavior in the prod
   assert.match(view, /function runCheck/);
   assert.doesNotMatch(view, /disabled=\{!text\.trim\(\)\}/);
   assert.doesNotMatch(view, /nextText !== t\.exampleText/);
+  // What the press puts in the field is the whole grey block — `inputGhost`,
+  // 「例如三种分享按钮：」 included — not `exampleText` with that line trimmed
+  // off. Trimming read tidier and looked worse: the grey turned black and the
+  // top line went out from under the rest, so a press that changes nothing but
+  // a colour appeared to eat a line. The line names no symbol either way, and
+  // there are assertions further down pinning that the example is exactly three
+  // tiles in both languages.
+  assert.match(view, /setText\(inputGhost\(t\)\);\s*\n?\s*checkNames\(inputGhost\(t\)\)/);
+  assert.doesNotMatch(view, /setText\(t\.exampleText\)/);
   // Every row carries a time. Demanding one is also what drops the demo rows an
   // older build left in this same storage key.
   assert.match(view, /typeof entry\?\.createdAt === "number"/);
@@ -281,6 +293,27 @@ test("keeps adaptive density, local history, and responsive behavior in the prod
   // emulation on. 2.5rem is 40px at the default root.
   assert.match(css, /--chip-h: 2\.5rem/);
   assert.match(css, /@keyframes tile-in/);
+  // The reveal belongs to the press, not to the page load in front of it. The
+  // run counter rides in every tile's key, so asking for a preview hands React
+  // fresh elements and `tile-in` plays again. Without it the animation was
+  // spent before the reader arrived and never fired for a set that had not
+  // changed — pressing the main button on the grey example filled the field and
+  // wrote a history row, and left the panel the button *names* as the one thing
+  // on screen that did not move.
+  assert.match(view, /const \[runId, setRunId\] = useState\(0\)/);
+  assert.match(view, /setRunId\(\(current\) => current \+ 1\)/);
+  assert.match(view, /key=\{`\$\{runId\}:\$\{name\}`\}/);
+  // The stagger's delay is zeroed along with its duration under reduced motion:
+  // `tile-in` is `backwards`, so a delay left standing holds the transparent
+  // first frame on screen — a flicker, which is the thing that query removes.
+  assert.match(css, /animation-duration: 0\.01ms !important; animation-delay: 0ms !important/);
+  // The copy hint is quiet at rest, never absent. At `opacity: 0` it was the
+  // only thing on a pointer device saying a tile can be clicked, and it was
+  // invisible until hover — a first visit showed three glyphs and no way to
+  // learn the one action this page exists for. A phone has always shown it
+  // outright, having no hover to reveal it with.
+  assert.match(css, /^\.copy-affordance \{[^}]*opacity: 0\.36;/m);
+  assert.doesNotMatch(css, /^\.copy-affordance \{[^}]*opacity: 0;/m);
   // A phone's list width has no drag handle behind it, so the tiles fill the
   // row there instead of centring a fixed square between two wide margins.
   assert.match(view, /fillRow\(planTiles\(/);
@@ -406,4 +439,86 @@ test("keeps adaptive density, local history, and responsive behavior in the prod
   // The browser's own bars are part of a dark page on a phone.
   assert.match(layout, /themeColor/);
   assert.match(layout, /apple: "\/favicon\.png"/);
+});
+
+test("all five palettes declare the same tokens, and the stored one is on screen before React", async () => {
+  const [css, view, strings] = await Promise.all([
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/symbol-flow.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/messages.ts", import.meta.url), "utf8"),
+  ]);
+
+  // A theme block is a complete palette or it is a trap: a token declared in
+  // one block and forgotten in another falls back to `:root`, which means the
+  // *default* theme's value, silently, on one element somewhere down the page.
+  const palette = (header) => {
+    const start = css.indexOf(header);
+    assert.notEqual(start, -1, `no theme block for ${header}`);
+    const open = css.indexOf("{", start);
+    const close = css.indexOf("\n}", open);
+    const names = [...css.slice(open, close).matchAll(/^\s*(--[\w-]+):/gm)].map((m) => m[1]);
+    assert.ok(names.length > 30, `${header} declares only ${names.length} tokens`);
+    return new Set(names);
+  };
+  const reference = palette('\n[data-theme="amber"] {');
+  for (const name of ["midnight", "dark-modern", "github-dark", "catppuccin"]) {
+    const other = palette(`[data-theme="${name}"] {`);
+    const missing = [...reference].filter((token) => !other.has(token));
+    const extra = [...other].filter((token) => !reference.has(token));
+    assert.deepEqual(missing, [], `${name} is missing ${missing.join(", ")}`);
+    assert.deepEqual(extra, [], `amber is missing ${extra.join(", ")}`);
+  }
+
+  // The default theme is the bare `:root` selector's values, so the amber block
+  // must be attached to it rather than standing alone — that is what a reader
+  // with no stored choice, or no JavaScript, gets.
+  assert.match(css, /:root,\n\[data-theme="amber"\] \{/);
+  // …and the derived layer is attached to `[data-theme]` as well as `:root`, or
+  // the picker's swatches preview the running theme five times over: a custom
+  // property inherits as its computed value, already substituted.
+  assert.match(css, /:root,\n\[data-theme\] \{/);
+  assert.match(view, /className="theme-swatch" data-theme=\{option\}/);
+
+  // Nothing may name a hue any more: `--blue` was the accent, and the accent is
+  // amber, purple or frost depending on the palette.
+  assert.doesNotMatch(css, /var\(--blue\b|var\(--green\b|var\(--amber\b/);
+  // Every tint is derived from the four ramps, so an alpha exists once.
+  assert.match(css, /--accent: rgb\(var\(--accent-rgb\)\)/);
+  assert.match(css, /--line: rgba\(var\(--hairline-rgb\), 0\.14\)/);
+
+  // Applied before the first paint, like the column widths and for the same
+  // reason — a palette that arrives in an effect is one the reader watches
+  // arrive. `<html>` carries the truth; the picker's state is only a mirror,
+  // and it starts null because the server cannot know which palette this is.
+  assert.match(view, /h\.setAttribute\("data-theme"/);
+  assert.match(view, /symbol-flow-theme/);
+  assert.match(view, /useState<Theme \| null>\(null\)/);
+  assert.match(view, /const themes: Theme\[\] = \["amber", "midnight", "dark-modern", "github-dark", "catppuccin"\]/);
+
+  // The chip is a control, not a way out of the site, so it is not a
+  // `.brand-link` — that class is what the phone breakpoint hides.
+  assert.match(view, /className="theme-toggle"[\s\S]{0,220}aria-label=\{t\.theme\.label\}/);
+  assert.doesNotMatch(view, /className="theme-toggle"[^>]*\stitle=/);
+  assert.match(strings, /theme: \{ label: "配色主题" \}/);
+  assert.match(strings, /theme: \{ label: "Colour theme" \}/);
+  // Palette names are proper nouns, like the brand — one spelling, both
+  // languages, and not this project's to rename.
+  for (const name of ["Ink & Amber", "Midnight", "Dark Modern", "GitHub Dark", "Catppuccin Mocha"]) {
+    assert.ok(strings.includes(`"${name}"`), `themeNames is missing ${name}`);
+  }
+
+  // …and the chip survives the phone, where the two author links do not.
+  const phone = /@media \(max-width: 580px\) \{[\s\S]*?\n\}/.exec(css)?.[0] ?? "";
+  assert.doesNotMatch(phone, /theme-toggle \{ display: none/);
+
+  for (const [language, label] of [["zh-CN", "配色主题"], ["en-US", "Colour theme"]]) {
+    const html = await (await render(language)).text();
+    assert.match(html, new RegExp(`class="theme-toggle"[^>]*aria-label="${label}"`));
+    // The server renders no theme attribute at all: the default palette is the
+    // bare `:root`, and the boot script is what names it.
+    assert.doesNotMatch(html, /<html[^>]*data-theme=/);
+    // The menu is shut on the first frame. That is the whole reason its
+    // contents are allowed to depend on state the server could not have.
+    assert.doesNotMatch(html, /theme-menu/);
+  }
 });

@@ -10,7 +10,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { CaretRight, Check, Copy, GithubLogo, Info, Trademark, Trash } from "@phosphor-icons/react";
 
 import type { CopyFormat, Locale, Messages } from "./messages";
-import { authorLinks, brandName, brandSymbol, inputGhost, isLocale, localeCookieName, localeStorageKey, locales, messages } from "./messages";
+import { authorLinks, brandName, brandSymbol, inputGhost, isLocale, localeCookieName, localeStorageKey, locales, messages, themeNames } from "./messages";
 import { restrictedProducts, symbolRestrictions, symbolVersions } from "./symbol-catalog";
 import { fillRow, planTiles, tileRowsBelow } from "./tile-plan";
 
@@ -102,6 +102,27 @@ const historyStorageKey = "symbol-flow-history";
 const formatStorageKey = "symbol-flow-copy-format";
 
 /**
+ * The palette. All five are dark — this is a workbench that fills the screen and
+ * the symbols are the only thing on it that should be bright — so what the
+ * picker changes is the hue of the room and of the single accent in it. Every
+ * value lives in `globals.css`; all that is here is the name.
+ *
+ * The live one is a plain string on `<html>`, not React state, because the
+ * server cannot know which palette this browser chose: anything the *closed*
+ * bar renders from it would be rendered wrong once per visit. The picker's own
+ * copy of it is state, and that is safe for exactly one reason — the menu is
+ * shut on the first frame, so nothing derived from it is ever on screen before
+ * the effect that reads the attribute has run.
+ */
+type Theme = "amber" | "midnight" | "dark-modern" | "github-dark" | "catppuccin";
+/** Menu order: the two house palettes, then the three ported ones. */
+const themes: Theme[] = ["amber", "midnight", "dark-modern", "github-dark", "catppuccin"];
+const defaultTheme: Theme = "amber";
+const themeStorageKey = "symbol-flow-theme";
+/** The mark on the toggle: a paint palette, drawn by the pipeline it is about. */
+const themeSymbol = "paintpalette.fill";
+
+/**
  * The stored widths, applied before the first frame instead of after it.
  *
  * They cannot come from the server: nothing about the reader's last drag is in
@@ -120,6 +141,13 @@ const formatStorageKey = "symbol-flow-copy-format";
 const columnBootScript =
   `(function(){try{` +
   `var h=document.documentElement,d=h.style,k=["a","b","c"];` +
+  // The theme first, and inside its own guard: it is the one preference that
+  // repaints every pixel on the page, so it may not be skipped because reading
+  // some later key threw. The default writes its own name too — the attribute
+  // is then always the answer to "which theme is this", including for the
+  // toggle, and the bare `:root` values are only ever the no-JavaScript case.
+  `var th=null;try{th=localStorage.getItem(${JSON.stringify(themeStorageKey)});}catch(e){}` +
+  `h.setAttribute("data-theme",${JSON.stringify(themes)}.indexOf(th)===-1?${JSON.stringify(defaultTheme)}:th);` +
   `var read=function(key){try{var raw=localStorage.getItem(key);return raw?JSON.parse(raw):null;}catch(e){return null;}};` +
   `var three=function(v){return Array.isArray(v)&&v.length===3&&v.slice(0,3).every(function(n){return typeof n==="number"&&isFinite(n)&&n>0;});};` +
   `var w=read(${JSON.stringify(columnsStorageKey)});if(!three(w))w=${JSON.stringify(defaultColumns)};` +
@@ -427,6 +455,24 @@ function rememberLocale(locale: Locale) {
 }
 
 /**
+ * The chosen palette, written to the element the stylesheet reads and
+ * remembered for the boot script to restore before the next first paint.
+ *
+ * The attribute is the source of truth, not the state that mirrors it: it is
+ * what is actually on screen, and it is what the picker reads back on mount.
+ */
+function applyTheme(next: Theme) {
+  document.documentElement.dataset.theme = next;
+  remember((storage) => storage.setItem(themeStorageKey, next));
+}
+
+/** What is on screen right now, defaulting the way the boot script does. */
+function currentTheme(): Theme {
+  const named = document.documentElement.dataset.theme as Theme;
+  return themes.includes(named) ? named : defaultTheme;
+}
+
+/**
  * Whether the reader has asked their system to stop animating things. The CSS
  * side of this is a media query, but a scroll asked for in JavaScript carries
  * its own `behavior` and overrides `scroll-behavior` outright — so the one
@@ -531,7 +577,26 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
   // types starts from a blank field instead of deleting somebody else's sample,
   // and whoever does not type still has something to press the button on.
   const [text, setText] = useState("");
-  const [analysis, setAnalysis] = useState<Analysis>(() => analyzeText(t.exampleText));
+  const [analysis, setAnalysis] = useState<Analysis>(() => analyzeText(inputGhost(t)));
+  /**
+   * Which run of the preview is on screen, and the only reason it exists: it
+   * goes into every tile's React key, so a run remounts the tiles and the
+   * `tile-in` reveal in globals.css plays again.
+   *
+   * Without it the reveal is spent on page load — before the reader has done
+   * anything — and never fires again for a set that has not changed. Pressing
+   * the main button on the grey example produced exactly that: the field filled
+   * in, a history row appeared, and the panel the button *names* did not move a
+   * pixel. The animation is the product's one authored moment; it belongs to
+   * the press, not to the page load that happens to precede it.
+   *
+   * A key rather than a class toggle because a CSS animation only restarts on
+   * a fresh element; the alternatives are forcing a reflow or driving it from
+   * the Web Animations API, both of which put the timing in two places. Under
+   * `prefers-reduced-motion` the reveal is already flattened to 0.01ms by the
+   * block at the end of globals.css, so a remount is invisible there.
+   */
+  const [runId, setRunId] = useState(0);
   const [copyFormat, setCopyFormat] = useState<CopyFormat>("name");
   const [copiedName, setCopiedName] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState(() => t.toast.copied(t.copyFormats.name));
@@ -541,6 +606,14 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
   // never did — see 「已经删掉的东西」 in CLAUDE.md.
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [restored, setRestored] = useState(false);
+  /**
+   * The picker's copy of what `<html>` says. It starts null rather than at the
+   * default because the server has no way to know, and it is only ever read
+   * inside the menu — which is shut until someone opens it, long after the
+   * effect below has filled this in.
+   */
+  const [theme, setTheme] = useState<Theme | null>(null);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [columns, setColumns] = useState<number[]>(defaultColumns);
   const [activeResizer, setActiveResizer] = useState<number | null>(null);
   const [tile, setTile] = useState({ columns: 3, size: 125, rows: false });
@@ -555,6 +628,8 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
   const lastStoredMins = useRef<string | null>(null);
   const lastStoredTile = useRef<string | null>(null);
   const pastedRef = useRef(false);
+  const themePickerRef = useRef<HTMLDivElement | null>(null);
+  const themeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   /**
    * Newest first, always. The list is assembled from two sources — what this
@@ -568,7 +643,7 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
   );
 
   /** What the button would run right now — the typed text, or the example. */
-  const pendingText = text.trim() ? text : t.exampleText;
+  const pendingText = text.trim() ? text : inputGhost(t);
   const liveAnalysis = useMemo(() => analyzeText(pendingText), [pendingText]);
   const density =
     analysis.valid.length <= 3 ? "comfortable" : analysis.valid.length <= 6 ? "compact" : "dense";
@@ -637,6 +712,11 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
         // Local storage is an enhancement; the checker still works without it.
       } finally {
         setRestored(true);
+        // The palette comes off the attribute, not out of storage: the boot
+        // script has already resolved it there, default and all. In `finally`
+        // because the first `getItem` above is exactly what throws when site
+        // data is blocked, and the picker still has to know what it is showing.
+        setTheme(currentTheme());
         // The rows on screen are this browser's own from here, so the hold the
         // boot script put on the list comes off. In `finally`, because a list
         // that stays hidden after a failed restore is the worse bug.
@@ -664,17 +744,54 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
     document.documentElement.lang = messages[locale].htmlLang;
   }, [locale]);
 
+  /**
+   * A menu that stays open after you have looked away is a menu covering the
+   * thing you looked at. Both dismissals are only wired while it is open, so
+   * the closed state costs nothing: pointerdown rather than click, because the
+   * press is when the intent is legible, and Escape returns focus to the chip
+   * it came from — otherwise the keyboard lands back at the top of the page.
+   */
+  useEffect(() => {
+    if (!themeMenuOpen) return;
+
+    const dismiss = (event: PointerEvent) => {
+      if (!themePickerRef.current?.contains(event.target as Node)) setThemeMenuOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setThemeMenuOpen(false);
+      themeButtonRef.current?.focus();
+    };
+
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [themeMenuOpen]);
+
+  function pickTheme(next: Theme) {
+    applyTheme(next);
+    setTheme(next);
+    setThemeMenuOpen(false);
+    themeButtonRef.current?.focus();
+  }
+
   function changeLocale(next: Locale) {
     if (next === locale) return;
 
     // The example text is demo content, so it follows the language — anything
     // the reader typed or checked is left untouched, history rows included. An
     // empty field is showing the example as grey text, so its preview moves too.
+    // `inputGhost`, not `exampleText`: the grey block including its 「例如」
+    // line is what the button puts in the field, so that whole string is what
+    // "the field is still showing the example" means here.
     if (!text.trim()) {
-      setAnalysis(analyzeText(messages[next].exampleText));
-    } else if (text === t.exampleText) {
-      setText(messages[next].exampleText);
-      setAnalysis(analyzeText(messages[next].exampleText));
+      setAnalysis(analyzeText(inputGhost(messages[next])));
+    } else if (text === inputGhost(t)) {
+      setText(inputGhost(messages[next]));
+      setAnalysis(analyzeText(inputGhost(messages[next])));
     }
     setLocale(next);
     rememberLocale(next);
@@ -869,6 +986,10 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
   function checkNames(nextText = text, addToHistory = true) {
     const nextAnalysis = analyzeText(nextText);
     setAnalysis(nextAnalysis);
+    // Every path into here is a reader asking for a preview — the button, a
+    // paste, a history row — so every one of them gets the reveal, including
+    // the one that asks for the same symbols that were already on screen.
+    setRunId((current) => current + 1);
 
     // Running the example counts. It used to be excluded because the example
     // was already a seeded row in the list, so a second "just now" copy of it
@@ -915,14 +1036,22 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
    * not a dead end: it is showing the example in grey, and pressing the button
    * takes that at its word — the example becomes the real input, in black, so
    * what was checked is what the field says.
+   *
+   * What lands in the field is the whole grey block, 「例如三种分享按钮：」 and
+   * all (`inputGhost`, not `exampleText`). Dropping that first line was the
+   * tidier reading — "例如" has no business inside text you pasted — but the
+   * press is where it showed: the grey turned black and the top line vanished
+   * under it, so the three lines left jumped up by one and the press read as
+   * having eaten something. Keeping it costs a line nobody minds and makes the
+   * press a pure change of colour. It carries no symbol name either way.
    */
   function runCheck() {
     if (text.trim()) {
       checkNames();
       return;
     }
-    setText(t.exampleText);
-    checkNames(t.exampleText);
+    setText(inputGhost(t));
+    checkNames(inputGhost(t));
   }
 
   function restoreHistory(entry: HistoryEntry) {
@@ -1023,6 +1152,43 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
             <a className="brand-link is-art" href={authorLinks.betterMapIt} target="_blank" rel="noreferrer" aria-label={t.links.betterMapIt}>
               <span className="brand-link-art" aria-hidden="true" />
             </a>
+            {/* Same shape as the two links, but it is not one — it stays on a
+                phone, where the links come off. No `title`, for the same reason
+                they have none: the palette says what this is about, and the
+                list it opens says the rest. */}
+            <div className="theme-picker" ref={themePickerRef}>
+              <button
+                ref={themeButtonRef}
+                className="theme-toggle"
+                type="button"
+                onClick={() => setThemeMenuOpen((open) => !open)}
+                aria-label={t.theme.label}
+                aria-haspopup="true"
+                aria-expanded={themeMenuOpen}
+              >
+                <SymbolGlyph name={themeSymbol} />
+              </button>
+              {themeMenuOpen && (
+                <div className="theme-menu" role="menu" aria-label={t.theme.label}>
+                  {themes.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={theme === option}
+                      onClick={() => pickTheme(option)}
+                    >
+                      {/* The swatch is the palette rendering itself: this
+                          attribute re-derives that theme's tokens on this one
+                          span, so no hex is copied here. */}
+                      <span className="theme-swatch" data-theme={option} aria-hidden="true" />
+                      {themeNames[option]}
+                      <Check className="theme-tick" size={14} weight="bold" aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="lang-switch" role="group" aria-label={t.language.label}>
               {locales.map((option) => (
                 <button
@@ -1156,7 +1322,9 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
             return (
               <button
                 className={`result-card${isCopied ? " is-copied" : ""}`}
-                key={name}
+                // The run, not just the name: a new run has to hand React a new
+                // element or the reveal cannot play again. See `runId`.
+                key={`${runId}:${name}`}
                 type="button"
                 style={{ "--tile-index": position } as CSSProperties}
                 aria-label={t.results.cardLabel(name, t.copyFormats[copyFormat])}
@@ -1187,7 +1355,7 @@ export default function SymbolFlow({ initialLocale }: { initialLocale: Locale })
             <SymbolGlyph name="doc.badge.plus" />
             <h3>{t.empty.title}</h3>
             <p>{t.empty.body}</p>
-            <button type="button" onClick={() => { setText(t.exampleText); checkNames(t.exampleText); }}>{t.empty.action}</button>
+            <button type="button" onClick={() => { setText(inputGhost(t)); checkNames(inputGhost(t)); }}>{t.empty.action}</button>
           </div>
         )}
 

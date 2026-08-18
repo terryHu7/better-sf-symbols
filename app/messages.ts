@@ -43,6 +43,22 @@ export const brandSymbol = "eyes";
  */
 export const siteOrigin = "https://sfsymbols.terryhu.workers.dev";
 
+/**
+ * The five palettes, named the way their own communities name ports. Three come
+ * from outside — Dark Modern (Microsoft, the palette inside VS Code itself),
+ * GitHub Dark (MIT) and Catppuccin Mocha (MIT) — and a developer who reads
+ * "GitHub Dark" already knows what they are about to get, which is the whole
+ * value of the name. Proper nouns, so they are not translated, exactly like
+ * `brandName`: the palettes are not this project's to rename.
+ */
+export const themeNames = {
+  amber: "Ink & Amber",
+  midnight: "Midnight",
+  "dark-modern": "Dark Modern",
+  "github-dark": "GitHub Dark",
+  catppuccin: "Catppuccin Mocha",
+} as const;
+
 /** The author's links in the header bar. URLs are not copy — no translation. */
 export const authorLinks = {
   // The repo, not the author's profile. Same rule as the BetterMapIt chip next
@@ -64,6 +80,13 @@ export type Messages = {
    */
   meta: { title: string; description: string; imageAlt: string; ogLocale: string };
   language: { label: string; zh: string; en: string };
+  /**
+   * The palette chip's only word, and it is never drawn: the button is a
+   * symbol, so this is what a screen reader reads, and it names the menu it
+   * opens. The five palette names themselves are proper nouns and live in
+   * `themeNames`, untranslated.
+   */
+  theme: { label: string };
   brand: { tagline: string };
   links: { github: string; betterMapIt: string };
   input: {
@@ -127,27 +150,40 @@ const zh: Messages = {
   meta: {
     // 中西文之间用间隔号，不用 ASCII 连字符：`-` 夹在中文里读作减号。
     //
-    // 副标题只写「批量预览」，不写「SF Symbol 批量预览」：品牌名那半截已经念过
-    // 一次 SF Symbols 了，再念一遍是标签页里最贵的四个字用来重复。中文侧的搜索词
-    // 仍然完整——「SF Symbols 批量预览」跨着这个间隔号照样匹配。
+    // 副标题不重复品牌名那半截的 SF Symbols，但**可以**再说一次「符号」：那半截是
+    // 英文，接不住任何一个中文查询，所以「图标符号」不是重复，是这一页在中文里唯一
+    // 押得上的词。
     //
-    // 曾经是「SF Symbol 名称检查器」（2026-08-17 由作者换掉）：产品不是在替 AI
-    // 纠错，它是把一整段文字里的符号一次铺开给你看，而「预览」正是页面上唯一那个
-    // 主按钮的词。改这句要连着 en 侧一起改，两处标题在测试里都有断言钉着。
-    title: "Better SF Symbols · 批量预览",
+    // 「一网打尽图标符号」（2026-08-18 由作者定）。上一轮是「批量预览」，再上一轮是
+    // 「SF Symbol 名称检查器」（2026-08-17）——三个都在说同一件事，区别是站在谁的
+    // 角度：检查器说的是它对 AI 做了什么，批量预览说的是它怎么运作，一网打尽说的是
+    // 按下去之后读者手上多了什么。**代价记在这里**：「批量预览」曾是这页唯一在押的
+    // 长尾词（`public/robots.txt` 的注释里也写着），换掉就没了。
+    //
+    // 改这句要连着 en 侧一起改，两处标题在测试里都有断言钉着。
+    title: "Better SF Symbols · 一网打尽图标符号",
+    // 和标题押同一个词：「图标符号」在这里再出现一次，前面挂上中文侧真正会被搜的
+    // 动词「预览」。「真图并排铺开」是中间那半句花掉的地方——那正是 SF Symbols.app
+    // 结构上给不了的东西（见 CLAUDE.md 「对比」），不是凑字数。
     description:
-      "从 AI 回复、需求文档或代码中提取并检查 SF Symbol 名称，点按图标即可复制名称，或 SwiftUI / UIKit / AppKit 代码。",
-    imageAlt: "Better SF Symbols：粘一段 AI 回复，看清每个符号，点一下复制代码",
+      "一屏预览 AI 回复、需求文档或代码里的每个 SF Symbol 图标符号，真图并排铺开，点一下复制名称，或 SwiftUI / UIKit / AppKit 代码。",
+    imageAlt: "Better SF Symbols：粘一段 AI 回复，一屏预览里面的每个符号，点一下复制名称",
     ogLocale: "zh_CN",
   },
   language: { label: "界面语言", zh: "中文", en: "EN" },
-  // 一个空格都不留（2026-08-17 按要求）。此前中西文交界处（AI / SF 两侧）各有一个，
-  // 西文词**后面**那个写成 \u00A0（不换行空格）：手机标题栏只有一行的宽度，普通空格
-  // 两边都能断，实测断在了「…和 SF / 符号之间…」，把 SF 和它修饰的词拆到两行。
+  theme: { label: "配色主题" },
+  // 「一网打尽，告别低效👋」（2026-08-18 由作者定，同日又把两个半句对调）。收益在前、
+  // 抱怨在后：读者扫过这行时先拿到的应该是「你能得到什么」，「告别低效」是那件事的
+  // 结果，不是它的卖点。顺带和标题的「一网打尽图标符号」在同一个词上开头。
   //
-  // 那道保护跟着空格一起没了，而 CJK 和西文之间本来就是合法断点，所以窄屏仍可能断在
-  // 「AI」「SF」前后。真会折行的是手机那一档，改这句之前用 390px probe 看一眼断点。
-  brand: { tagline: "从此告别在AI工具和SF符号之间来回复制粘贴👋" },
+  // 更早一版是「从此告别在AI工具和SF符号之间来回复制粘贴」——那句把机制说全了，代价是
+  // 二十三个字，而顶栏这行是读者一眼扫过去的东西，不是读的。
+  //
+  // 这句里一个西文词都没有，所以此前那整套断点讲究（\u00A0 绑住「SF 符号」、一个空格
+  // 都不留）在它身上没有对象了：CJK 字与字之间处处是合法断点，不折行靠的是句子够短。
+  // 换长了就得重新量——`.brand-tagline` 的 `overflow-wrap: anywhere` 只保证不把顶栏
+  // 撑破，不保证好看。改这句之前用 390px probe 看一眼行数。
+  brand: { tagline: "一网打尽，告别低效👋" },
   // 这两条现在只给读屏用（tooltip 已去掉），所以只说去哪儿，不说客套话。
   // The label has to name the destination, and the destination changed: this
   // is the project's repo now, not the author's profile.
@@ -261,18 +297,36 @@ arrowshape.turn.up.right 偏向转发给别人。`,
 const en: Messages = {
   htmlLang: "en",
   meta: {
-    // Same reasoning as the Chinese title: the brand half already says
-    // "SF Symbols", so the suffix names what the page does with them.
-    title: "Better SF Symbols — Batch Preview",
+    // Structurally the same bet as the Chinese title: a phrase plus the one word
+    // someone would actually type. 「一网打尽」+「图标符号」 there, "them all" +
+    // "preview" here — "sf symbols preview" is the English query, and the title
+    // is the highest-weight place to answer it.
+    //
+    // It was "Catch Them All" for one round, matching the tagline word for word,
+    // and that version had no searchable word at all — nobody looks for an SF
+    // Symbols tool by typing "catch them all". The verb changed, the 「___ them
+    // all」 skeleton did not, so the tab and the tagline still rhyme; "Preview"
+    // is also exactly what the page's one main button says.
+    title: "Better SF Symbols — Preview Them All",
+    // Leads with the keyword, and spends its middle on "side by side" — the one
+    // thing SF Symbols.app structurally cannot do (see CLAUDE.md 「对比」). 144
+    // characters, inside the ~155 a search result shows before it truncates.
     description:
-      "Pull SF Symbol names out of an AI reply, a spec, or code, check them, and click any glyph to copy the name — or SwiftUI, UIKit, AppKit code.",
-    imageAlt: "Better SF Symbols — paste an AI reply, see every symbol, copy the code",
+      "Preview every SF Symbol in an AI reply, a spec, or code — real glyphs, side by side. Click one to copy the name, or SwiftUI, UIKit, AppKit code.",
+    imageAlt: "Better SF Symbols — paste an AI reply, preview them all, copy the name",
     ogLocale: "en_US",
   },
   language: { label: "Interface language", zh: "中文", en: "EN" },
-  // Same non-breaking bind as the Chinese line, for the one two-word proper
-  // noun in it: a wrap between "SF" and "Symbols" reads as two products.
-  brand: { tagline: "No more copy-pasting between AI tools and SF\u00A0Symbols 👋" },
+  theme: { label: "Colour theme" },
+  // The \u00A0 that used to bind "SF Symbols" here went with the words: this
+  // line no longer names the product, so there is no two-word proper noun left
+  // to hold together. Two short clauses, like 「一网打尽，告别低效」 — the rhythm
+  // is the half of that line that survives translation, and so is the order:
+  // the payoff first, the complaint second. It shares the 「___ them all」
+  // skeleton with the title rather than the whole phrase — the title spends its
+  // verb on the searchable word, the tagline keeps the punchy one. Change one
+  // and read the other out loud before you commit.
+  brand: { tagline: "Catch them all. No more busywork 👋" },
   links: { github: "Source code for this site", betterMapIt: "BetterMapIt (the author's other app)" },
   input: {
     title: "Input",
