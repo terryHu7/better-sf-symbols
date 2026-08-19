@@ -396,14 +396,21 @@ test("keeps adaptive density, local history, and responsive behavior in the prod
   // first column and pushed the name and tagline halfway across a phone.
   assert.match(css, /\.brand-actions \{ grid-area: 1 \/ 3 \/ 2 \/ 4; \}/);
   assert.match(css, /\.brand-name \{ grid-area: 1 \/ 2 \/ 2 \/ 3; \}/);
-  // A phone keeps that same two-row placement — the author links are what comes
-  // off instead, so the switch fits beside the title and the bar never grows a
-  // third row for a pair of chips leading somewhere else.
-  assert.match(
-    /@media \(max-width: 580px\) \{[\s\S]*?\n\}/.exec(css)?.[0] ?? "",
-    /\.brand-actions \.brand-link \{ display: none; \}/,
-  );
+  // A phone keeps two rows — the author links are what comes off instead, so the
+  // bar never grows a third row for a pair of chips leading somewhere else.
+  const phoneBar = /@media \(max-width: 580px\) \{[\s\S]*?\n\}/.exec(css)?.[0] ?? "";
+  assert.match(phoneBar, /\.brand-actions \.brand-link \{ display: none; \}/);
   assert.doesNotMatch(css, /\.brand-actions \{ grid-area: 3 \//);
+  // …and on that phone the cluster rides row 2 beside the tagline, with the
+  // <h1> taking the whole of row 1. The version before this stood the cluster on
+  // end — one track spanning both rows — which left the palette chip alone in
+  // the top-right corner with the switch underneath it, and at 320px it still
+  // broke the name across two lines, the one thing it had been bought to
+  // prevent. Measured on the change: 320px zh went 139px / 2 name lines to
+  // 107px / 1, and 390px zh stayed at ~108px with the two controls on one row.
+  assert.match(phoneBar, /\.brand-name \{ grid-area: 1 \/ 2 \/ 2 \/ 4; \}/);
+  assert.match(phoneBar, /\.brand-actions \{ grid-area: 2 \/ 3 \/ 3 \/ 4;/);
+  assert.doesNotMatch(phoneBar, /\.brand-actions \{[^}]*flex-direction: column/);
   // The two icon links carry no hover tooltip — a GitHub logo and BetterMapIt's
   // own app icon already say what they are. They must keep `aria-label` all the
   // same: their only content is an icon, so without it a screen reader reads

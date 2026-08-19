@@ -1640,21 +1640,29 @@ html[data-history-pending] .history-list { opacity: 0; }
      name / tagline stacked beside it, with the switch on the title's right.
      The links are only hidden here — every wider viewport still shows them. */
   .brand-actions .brand-link { display: none; }
-  /* …and with the palette toggle beside the switch, that row does not fit any
+  /* …and with the palette toggle beside the switch, row 1 does not fit any
      more. Measured at 390: the name needs 175px and had 153, and there is
      nothing to give back — 54 mark + 175 name + 40 toggle + 80 switch + gaps is
      410px of a 358px row, and both controls are already at the 40px touch floor.
-     So the cluster turns a corner instead: one column in the last track,
-     spanning both rows, which costs the tagline the width it was borrowing under
-     it and buys the name its single line. The alternative was the <h1> breaking
-     in half, which is the one line on this bar that should not. */
-  .brand-actions {
-    grid-area: 1 / 3 / 3 / 4;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-    gap: var(--gap-xs);
-  }
+     The first fix stood the cluster on end in the last track, spanning both
+     rows. That bought the name its line, but it left the palette chip alone in
+     the top-right corner with the switch underneath it, reading as two
+     unrelated controls stacked in a corner rather than as one cluster.
+     So the cluster moves down instead of turning: it rides row 2 beside the
+     tagline, and the name takes the whole bar. The row-1 arithmetic stops
+     applying because nothing shares row 1 any more (name gets 292 of 358 for
+     the 175 it needs), and row 2 is the cheap row to spend — the cluster is
+     128px of the 292 there, and the tagline was already the elastic part.
+     The bar also gets shorter: the standing cluster forced both rows to total
+     its own 88px, and now row 1 is just the name. */
+  .brand-name { grid-area: 1 / 2 / 2 / 4; }
+  .brand-actions { grid-area: 2 / 3 / 3 / 4; gap: var(--gap-xs); }
+  /* The cluster shares this row, so the tagline's track is the narrowest it is
+     at any width — narrow enough that the English line breaks as 3 words + a
+     lone 👋 at 320px. `text-wrap: balance` was tried here and changed nothing
+     (Chrome will not balance a block with `word-break: keep-all`), so the four
+     lines stand: it is the one cell this layout pays for, and it still costs
+     9px less header than the version that broke the <h1> in half instead. */
   .brand-tagline { grid-area: 2 / 2 / 3 / 3; }
   /* The mark is sized to the block it stands beside, the way an app icon is
      sized to a title and its subtitle. At the desktop floor of 40px it was a
