@@ -4,7 +4,7 @@
 
 [![Better SF Symbols](docs/screenshot-zh.png)](https://sfsymbols.terryhu.workers.dev)
 
-### → [sfsymbols.terryhu.workers.dev](https://sfsymbols.terryhu.workers.dev)
+### 页面地址：[sfsymbols.terryhu.workers.dev](https://sfsymbols.terryhu.workers.dev)
 
 粘一段 AI 回复，里面提到的每个 SF Symbol 都画出来并排铺开，点一下复制名称。
 
