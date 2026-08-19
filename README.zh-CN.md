@@ -4,9 +4,9 @@
 
 [![Better SF Symbols](docs/screenshot-zh.png)](https://sfsymbols.terryhu.workers.dev)
 
-### 页面地址：[sfsymbols.terryhu.workers.dev](https://sfsymbols.terryhu.workers.dev)
+### 地址：[sfsymbols.terryhu.workers.dev](https://sfsymbols.terryhu.workers.dev)
 
-粘一段 AI 回复，里面提到的每个 SF Symbol 都画出来并排铺开，点一下复制名称。
+一网打尽文本里的所有图标符号，从此告别低效👋
 
 ## 苹果开发者+符号选择困难症终于有救了！
 
