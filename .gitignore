@@ -57,3 +57,11 @@ tsconfig.tsbuildinfo
 # reproducible from anything here, and losing the folder wholesale would take it
 # with them.
 /public/symbols/
+
+# Same reason as /.agents/ above: local agent working files, not part of the
+# public release. .claude/skills/ documents Xiaohongshu's mini-tool container
+# (window.xhs.miniTool.* JSBridge, zip artifact spec) — a platform-internal API
+# surface that has no business in a public repo. minitool/ is a separate 11 MB
+# project that merely lives in this directory.
+/.claude/
+/minitool/
