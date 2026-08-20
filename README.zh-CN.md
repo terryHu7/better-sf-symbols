@@ -31,3 +31,11 @@ npm install
 npm run dev     # http://localhost:3000
 npm test        
 ```
+
+## 许可
+
+代码是 MIT，见 [LICENSE](LICENSE)。
+
+SF Symbols 本身是 Apple 的，使用受 Apple 的 SF Symbols 许可协议约束。仓库里没有提交任何符号图——
+`public/symbols/` 由你自己的 Mac 从系统生成，已经在 gitignore 里。这个站是给写 Apple 平台代码的人
+用的确认工具，不是图标库：没有任何下载导出，复制出来的是名字或者一行 Swift。

@@ -1,6 +1,6 @@
 # Better SF Symbols
-[English](README.md) · 简体中文
-[![Better SF Symbols](docs/screenshot-zh.png)](https://sfsymbols.terryhu.workers.dev)
+English · [简体中文](README.zh-CN.md)
+[![Better SF Symbols](docs/screenshot-en.png)](https://sfsymbols.terryhu.workers.dev)
 ## Finally, a cure for Apple developer + symbol-picking indecision!
 ### Bookmark it: [sfsymbols.terryhu.workers.dev](https://sfsymbols.terryhu.workers.dev)
 Extract every SF Symbol from your text in one go, and say goodbye to inefficiency 👋
@@ -18,3 +18,13 @@ npm install
 npm run dev     # http://localhost:3000
 npm test        
 ```
+
+## Licence
+
+The code here is MIT — see [LICENSE](LICENSE).
+
+SF Symbols themselves are Apple's, and their use is governed by Apple's SF Symbols licence
+agreement. No symbol artwork is committed to this repository: `public/symbols/` is generated on
+your own Mac from the system, and is gitignored. This is a verification tool for people writing
+Apple-platform code, not an icon library — there is no download or export, and what you copy is a
+name or a line of Swift.
