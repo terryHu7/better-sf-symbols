@@ -28,7 +28,15 @@ export async function generateMetadata(): Promise<Metadata> {
   const metadataBase = new URL(siteOrigin);
   const locale = resolveLocale(requestHeaders.get("cookie"), requestHeaders.get("accept-language"));
   const { title, description, imageAlt, ogLocale } = messages[locale].meta;
-  const image = new URL("/og.png", metadataBase).toString();
+  // The `?v=` is a cache key for other people's CDNs, not for ours. X, WeChat
+  // and the rest store the scraped card on their own servers keyed by *image
+  // URL*, so redrawing og.png in place is invisible to them: observed
+  // 2026-08-20, X had re-scraped the page (it showed the new title) while still
+  // serving the previous card, because the image address had not moved. Bump
+  // this whenever the card is redrawn — that is the only thing that makes them
+  // fetch it again. Already-posted links keep the old card until the platform
+  // re-scrapes them; nothing on our side can reach into their cache.
+  const image = new URL("/og.png?v=2", metadataBase).toString();
 
   return {
     metadataBase,
