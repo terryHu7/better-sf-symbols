@@ -196,6 +196,33 @@ test("the site's one address is spelled the same in all three places that name i
   assert.match(robots, /^Disallow: \/symbols\/$/m);
 });
 
+test("the share card's alt text says what the card itself says", async () => {
+  const strings = await readFile(new URL("../app/messages.ts", import.meta.url), "utf8");
+
+  const taglines = [...strings.matchAll(/brand: \{ tagline: "([^"]+)" \}/g)].map((match) => match[1]);
+  const alts = [...strings.matchAll(/imageAlt: "([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(taglines.length, 2, `expected two taglines, found ${taglines.length}`);
+  assert.equal(alts.length, 2, `expected two imageAlt strings, found ${alts.length}`);
+
+  // The card prints brand.tagline verbatim, so the alt has to carry the same
+  // words. These drifted once already: the card was redrawn on 2026-08-20 and
+  // both alts went on describing the sentence the old card used to print —
+  // still true about the product, wrong about the picture, and nothing on the
+  // page could notice. Emoji is stripped on the way in; this string is spoken.
+  for (const [index, tagline] of taglines.entries()) {
+    const spoken = tagline.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu, "").trim();
+    // "Catch them all. No more busywork" -> "catch them all, no more busywork":
+    // one alt phrase rather than two sentences, the shape the alts already had.
+    const phrase = spoken.replace(/\.\s+/g, ", ").toLowerCase();
+    const alt = alts[index].toLowerCase();
+    assert.ok(
+      alt.includes(phrase) || alt.includes(spoken.toLowerCase()),
+      `imageAlt ${JSON.stringify(alts[index])} does not carry the tagline ${JSON.stringify(tagline)}`,
+    );
+    assert.ok(alt.startsWith("better sf symbols"), `imageAlt ${JSON.stringify(alts[index])} does not name the product first`);
+  }
+});
+
 test("keeps adaptive density, local history, and responsive behavior in the product source", async () => {
   const [page, view, css, layout, strings] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),

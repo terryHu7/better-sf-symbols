@@ -77,6 +77,13 @@ export type Messages = {
    * `imageAlt` describes the share card. It is read aloud by every social
    * platform that bothers, and by anyone whose images failed to load — which
    * makes it copy, and copy lives in this file.
+   *
+   * It carries `brand.tagline`, because that is the line the card itself
+   * prints. The card was redrawn on 2026-08-20 and these two strings were left
+   * describing the sentence the old one used to carry — the alt was still
+   * accurate about the product and wrong about the picture, which is exactly
+   * the kind of drift nothing complains about. `tests/rendered-html.test.mjs`
+   * now ties them together. The emoji is dropped: this string gets spoken.
    */
   meta: { title: string; description: string; imageAlt: string; ogLocale: string };
   language: { label: string; zh: string; en: string };
@@ -167,7 +174,7 @@ const zh: Messages = {
     // 结构上给不了的东西（见 CLAUDE.md 「对比」），不是凑字数。
     description:
       "一屏预览 AI 回复、需求文档或代码里的每个 SF Symbol 图标符号，真图并排铺开，点一下复制名称，或 SwiftUI / UIKit / AppKit 代码。",
-    imageAlt: "Better SF Symbols：粘一段 AI 回复，一屏预览里面的每个符号，点一下复制名称",
+    imageAlt: "Better SF Symbols：一网打尽，告别低效",
     ogLocale: "zh_CN",
   },
   language: { label: "界面语言", zh: "中文", en: "EN" },
@@ -313,7 +320,7 @@ const en: Messages = {
     // characters, inside the ~155 a search result shows before it truncates.
     description:
       "Preview every SF Symbol in an AI reply, a spec, or code — real glyphs, side by side. Click one to copy the name, or SwiftUI, UIKit, AppKit code.",
-    imageAlt: "Better SF Symbols — paste an AI reply, preview them all, copy the name",
+    imageAlt: "Better SF Symbols — catch them all, no more busywork",
     ogLocale: "en_US",
   },
   language: { label: "Interface language", zh: "中文", en: "EN" },
