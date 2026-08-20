@@ -241,9 +241,6 @@ func renderFavicon(name: String, destination: URL, side: Int = 512) throws {
 // "eyes" is the base; renderFavicon draws "eyes.inverse" over it as the outline.
 try renderFavicon(name: "eyes", destination: root.appendingPathComponent("public/favicon.png"))
 
-/// The link preview card. Drawn here rather than in a design tool so it cannot
-/// drift from the product: same mark, same palette, same symbols the site
-/// actually ships. 1200x630 is the size every chat app crops to.
 /// Re-encodes a fully painted bitmap without its alpha channel.
 ///
 /// The share card covers every one of its 756,000 pixels, so that channel is a
@@ -293,6 +290,22 @@ func withoutAlpha(_ source: NSBitmapImageRep) -> NSBitmapImageRep {
     return target
 }
 
+/// The link preview card. Drawn here rather than in a design tool so it cannot
+/// drift from the product: same mark, same palette, same symbols the site
+/// actually ships. A PNG exported from a design file would be a second thing in
+/// `public/` that nothing can regenerate, and it would go stale in silence.
+/// 1200x630 is the size every chat app crops to.
+///
+/// The composition is the site's own reading order turned sideways: on the left
+/// the thing somebody else handed you — a reply, redacted, with three symbol
+/// names selected out of it — and on the right what it turns into, the name of
+/// this tool and those three symbols drawn for real. The reply is cropped by
+/// the left and bottom edges on purpose. It is a fragment of something longer,
+/// and a card that fitted the whole reply inside a tidy box would be claiming
+/// the AI only ever says three words.
+///
+/// Every number below is in top-left coordinates, because that is how the
+/// layout was measured; `place` flips them into AppKit's bottom-left.
 func renderOpenGraph(destination: URL) throws {
     let width = 1200
     let height = 630
@@ -319,29 +332,57 @@ func renderOpenGraph(destination: URL) throws {
     NSGraphicsContext.current = context
     context.imageInterpolation = .high
 
-    // The default theme's --bg and --body-glow (ink & amber), not midnight's —
-    // one card is served to everyone, so it can only be the palette a reader
-    // gets before they have picked one. **Re-run this script if the default
-    // theme's raw values ever move**; nothing else notices.
-    //
-    // The glow is the card's own number, like the symbol band's — a share card
-    // gets recompressed and shrunk to timeline size, and the page's 0.1 does not
-    // survive that. But it takes the **accent** hue (245,165,36 = --accent-rgb)
-    // rather than --body-glow's dimmed (150,118,70), and that is the whole
-    // lesson from the first attempt: a dimmed warm is a *desaturated* warm, and
-    // desaturated warm lifted 2.5x does not read as a lamp, it reads as dirt.
-    // Midnight got away with the same lift because blue-grey at that level still
-    // reads as a dark blue room. Saturation is what buys the alpha here.
-    NSColor(srgbRed: 0x0d / 255, green: 0x0d / 255, blue: 0x10 / 255, alpha: 1).setFill()
+    func place(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> NSRect {
+        NSRect(x: x, y: canvas.height - y - h, width: w, height: h)
+    }
+    func ink(_ rgb: UInt32, _ alpha: CGFloat = 1) -> NSColor {
+        NSColor(
+            srgbRed: CGFloat((rgb >> 16) & 0xff) / 255,
+            green: CGFloat((rgb >> 8) & 0xff) / 255,
+            blue: CGFloat(rgb & 0xff) / 255,
+            alpha: alpha
+        )
+    }
+
+    // The default theme's raw values (ink & amber), not midnight's — one card is
+    // served to everyone, and a reader who has not picked a palette gets this
+    // one. **Re-run this script if those raw values ever move**; nothing else
+    // notices. `--panel` and the two greys below are the same ones the site's
+    // own input field is painted with.
+    let bg = ink(0x0d0d10)          // --bg
+    let panel = ink(0x212129)       // the reply's surface
+    let hairline = ink(0x33333e)    // its border
+    let redacted = ink(0x43434f)    // the blanked-out words
+    let accent = ink(0xf5a524)      // --accent-rgb, the selection
+    let selectionInk = ink(0x17171b)
+    let bodyText = ink(0xf5f5f7)    // --text
+    let mutedText = ink(0xadadb8)   // --muted
+
+    bg.setFill()
     NSRect(origin: .zero, size: canvas).fill()
-    if let glow = NSGradient(colors: [
-        NSColor(srgbRed: 245 / 255, green: 165 / 255, blue: 36 / 255, alpha: 0.13),
-        NSColor(srgbRed: 245 / 255, green: 165 / 255, blue: 36 / 255, alpha: 0),
-    ]) {
-        // Fill the whole canvas and push the centre to the top edge. Drawing
-        // into a smaller rect clips the fade before it reaches zero, which
-        // leaves a hard horizontal seam straight across the card.
-        glow.draw(in: NSRect(origin: .zero, size: canvas), relativeCenterPosition: NSPoint(x: 0, y: 1))
+
+    // The card's alpha is higher than the page's for the same reason the symbols
+    // are: this gets recompressed and shrunk to timeline size, and the page's
+    // 0.1 does not survive that. It takes the **accent** hue rather than
+    // --body-glow's dimmed (150,118,70), and that is the whole lesson from the
+    // first attempt: a dimmed warm is a *desaturated* warm, and desaturated warm
+    // lifted does not read as a lamp, it reads as dirt. Saturation is what buys
+    // the alpha. It sits over the wordmark, not over the empty corner — in the
+    // corner the same wash had nothing to light and read as a stain.
+    // Three stops, not two. A two-stop radial across the full canvas falls off
+    // so slowly that the whole right half goes brown — and a wash that broad
+    // stops reading as light and starts reading as dirt, which is the same trap
+    // the dimmed hue fell into. Reaching zero at 45% of the radius keeps the
+    // glow tight around the wordmark; it still has to reach zero *inside* the
+    // canvas, because clipping the fade — with a smaller rect, or an ellipse —
+    // leaves a visible seam curving across the card.
+    let glowStops: [(NSColor, CGFloat)] = [
+        (ink(0xf5a524, 0.18), 0.0),
+        (ink(0xf5a524, 0.06), 0.20),
+        (ink(0xf5a524, 0.0), 0.45),
+    ]
+    if let glow = NSGradient(colorsAndLocations: glowStops[0], glowStops[1], glowStops[2]) {
+        glow.draw(in: NSRect(origin: .zero, size: canvas), relativeCenterPosition: NSPoint(x: 0.5, y: 1))
     }
 
     func draw(symbol: String, rect: NSRect, color: NSColor, weight: NSFont.Weight = .bold) {
@@ -365,78 +406,175 @@ func renderOpenGraph(destination: URL) throws {
         )
     }
 
-    // The mark, on the same rounded tile as the favicon. The fill is what
+    // ---- the reply, cropped by the left and bottom edges ----
+
+    let boxX: CGFloat = -164
+    let boxY: CGFloat = 64
+    let boxW: CGFloat = 628
+    let boxH: CGFloat = 640
+    let boxRect = place(boxX, boxY, boxW, boxH)
+    let boxPath = NSBezierPath(roundedRect: boxRect, xRadius: 24, yRadius: 24)
+    panel.setFill()
+    boxPath.fill()
+
+    // Deterministic: the blanked-out words are noise, but a card that reshuffled
+    // itself on every render would make every rebuild a diff.
+    var seed: UInt64 = 4471
+    func random() -> CGFloat {
+        seed = seed &* 6364136223846793005 &+ 1442695040888963407
+        return CGFloat((seed >> 33) & 0xffffff) / CGFloat(0xffffff)
+    }
+
+    func bar(_ x: CGFloat, _ centerY: CGFloat, _ w: CGFloat) {
+        redacted.setFill()
+        let r = place(boxX + x, boxY + centerY - 6, w, 12)
+        NSBezierPath(roundedRect: r, xRadius: 6, yRadius: 6).fill()
+    }
+
+    func fillRange(_ centerY: CGFloat, _ from: CGFloat, _ to: CGFloat) {
+        var x = from
+        while to - x > 60 {
+            var w = 70 + random() * 170
+            if w > to - x { w = to - x }
+            bar(x, centerY, w)
+            x += w + 20
+            if random() < 0.15 { break }
+        }
+    }
+
+    let chipFont = NSFont.systemFont(ofSize: 24, weight: .bold)
+    let chipHeight = (chipFont.ascender - chipFont.descender).rounded() + 24
+
+    /// One highlighted symbol name. Right-aligned, because the left end of every
+    /// line is off the canvas.
+    func chip(_ name: String, _ centerY: CGFloat, rightEdge: CGFloat) -> (x: CGFloat, width: CGFloat) {
+        let label = NSAttributedString(string: name, attributes: [
+            .font: chipFont,
+            .foregroundColor: selectionInk,
+        ])
+        // Measured here rather than copied off the mock: the mock was set in
+        // Inter, the system font is wider, and a hard-coded width clips the name
+        // out of its own highlight.
+        let labelSize = label.size()
+        let w = labelSize.width.rounded() + 44
+        let x = rightEdge - w
+        let r = place(boxX + x, boxY + centerY - chipHeight / 2, w, chipHeight)
+        accent.setFill()
+        NSBezierPath(roundedRect: r, xRadius: 11, yRadius: 11).fill()
+        label.draw(at: NSPoint(x: r.minX + 22, y: r.midY - labelSize.height / 2))
+        return (x, w)
+    }
+
+    let names = ["square.and.arrow.up", "arrow.up.doc", "arrowshape.turn.up.right"]
+    let chipRows: [Int: Int] = [2: 0, 6: 1, 10: 2]
+    let chipRightEdges: [CGFloat] = [556, 486, 570]
+    let contentRight = boxW - 40
+    // Lines start past the cropped edge, so they read as continuing rather than
+    // as a column that happens to begin at the frame.
+    let bleedLeft: CGFloat = -40
+
+    NSGraphicsContext.saveGraphicsState()
+    boxPath.addClip()
+    for row in 0 ... 13 {
+        let centerY = 40 + 44 * CGFloat(row)
+        guard let index = chipRows[row] else {
+            fillRange(centerY, bleedLeft, contentRight)
+            continue
+        }
+        let placed = chip(names[index], centerY, rightEdge: chipRightEdges[index])
+        if placed.x - bleedLeft > 70 { fillRange(centerY, bleedLeft, placed.x - 20) }
+        if contentRight - (placed.x + placed.width) > 70 {
+            fillRange(centerY, placed.x + placed.width + 20, contentRight)
+        }
+    }
+    NSGraphicsContext.restoreGraphicsState()
+
+    hairline.setStroke()
+    let boxStroke = NSBezierPath(roundedRect: boxRect.insetBy(dx: 1, dy: 1), xRadius: 23, yRadius: 23)
+    boxStroke.lineWidth = 2
+    boxStroke.stroke()
+
+    // ---- what it turns into ----
+
+    let columnX: CGFloat = 548
+    // Three symbols and two gaps; the wordmark above is solved to this width.
+    let glyphSide: CGFloat = 174
+    let glyphPitch: CGFloat = 207
+    let glyphRowWidth = glyphSide * 3 + (glyphPitch - glyphSide) * 2
+
+    // The mark, on the same rounded tile as the header's. The fill is what
     // `.brand-mark` composites to in the browser — rgba(255,255,255,0.04) over
-    // --shell #17171b — so the card's mark and the header's are the same
-    // colour, not two guesses at "slightly lighter than the ground".
-    let tile = NSRect(x: canvas.width / 2 - 66, y: 432, width: 132, height: 132)
-    NSColor(srgbRed: 0x20 / 255, green: 0x20 / 255, blue: 0x24 / 255, alpha: 1).setFill()
-    NSBezierPath(roundedRect: tile, xRadius: 30, yRadius: 30).fill()
-    NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.14).setStroke()
-    let tileStroke = NSBezierPath(roundedRect: tile.insetBy(dx: 0.5, dy: 0.5), xRadius: 30, yRadius: 30)
+    // --shell #17171b — so the card's mark and the site's are the same colour,
+    // not two guesses at "slightly lighter than the ground".
+    let tile = place(columnX, 84, 76, 76)
+    ink(0x202024).setFill()
+    NSBezierPath(roundedRect: tile, xRadius: 18, yRadius: 18).fill()
+    NSColor(white: 1, alpha: 0.14).setStroke()
+    let tileStroke = NSBezierPath(roundedRect: tile.insetBy(dx: 0.5, dy: 0.5), xRadius: 18, yRadius: 18)
     tileStroke.lineWidth = 1
     tileStroke.stroke()
     // Two-tone, like the favicon and the header mark: one mark everywhere.
-    draw(symbol: "eyes", rect: tile.insetBy(dx: 26, dy: 40), color: .white)
+    let eyes = tile.insetBy(dx: 11.4, dy: 20)
+    draw(symbol: "eyes", rect: eyes, color: .white)
     // Same colour the web mark's second layer takes: `.brand-glyph
     // .symbol-glyph + .symbol-glyph { color: var(--bg) }`.
-    draw(
-        symbol: "eyes.inverse",
-        rect: tile.insetBy(dx: 26, dy: 40),
-        color: NSColor(srgbRed: 0x0d / 255, green: 0x0d / 255, blue: 0x10 / 255, alpha: 1)
-    )
+    draw(symbol: "eyes.inverse", rect: eyes, color: bg)
 
-    func centered(_ text: String, font: NSFont, color: NSColor, tracking: CGFloat, baseline: CGFloat) {
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .center
-        let attributed = NSAttributedString(string: text, attributes: [
+    func write(_ string: String, font: NSFont, color: NSColor, tracking: CGFloat, x: CGFloat, bottom: CGFloat) {
+        NSAttributedString(string: string, attributes: [
             .font: font,
             .foregroundColor: color,
             .kern: tracking,
-            .paragraphStyle: paragraph,
-        ])
-        let size = attributed.size()
-        attributed.draw(in: NSRect(x: 0, y: baseline, width: canvas.width, height: size.height + 8))
+        ]).draw(at: NSPoint(x: x, y: canvas.height - bottom))
     }
 
-    centered(
-        "Better SF Symbols",
-        font: NSFont.systemFont(ofSize: 78, weight: .semibold),
-        // --text, not pure white: the page's brightest type is #f5f5f7.
-        color: NSColor(srgbRed: 0xf5 / 255, green: 0xf5 / 255, blue: 0xf7 / 255, alpha: 1),
-        tracking: -1.6,
-        baseline: 320
+    // Sized to the row of symbols underneath rather than to a number: the two
+    // are one block, and the mock was set in Inter while this renders in the
+    // system font, which is narrower. Solving for the width keeps them flush
+    // whatever the system font does next.
+    let wordmark = "Better SF Symbols"
+    let wordmarkTracking: CGFloat = -2
+    func wordmarkWidth(_ size: CGFloat) -> CGFloat {
+        NSAttributedString(string: wordmark, attributes: [
+            .font: NSFont.systemFont(ofSize: size, weight: .semibold),
+            .kern: wordmarkTracking,
+        ]).size().width
+    }
+    var wordmarkSize: CGFloat = 70
+    for _ in 0 ..< 6 {
+        wordmarkSize *= glyphRowWidth / wordmarkWidth(wordmarkSize)
+    }
+    write(
+        wordmark,
+        font: .systemFont(ofSize: wordmarkSize.rounded(), weight: .semibold),
+        color: bodyText,
+        tracking: wordmarkTracking,
+        x: columnX,
+        bottom: 274
     )
-    // Three beats, and the last one is the correction: it said "Copy the code"
-    // for months while the product copied the *name* by default — the card was
-    // the last place still promising the wrong thing (CLAUDE.md, first line).
-    // The middle beat carries the English title's phrase, so the tab, the
-    // header and the share card all say one thing.
-    centered(
-        "Paste an AI reply. Preview them all. Copy the name.",
-        font: NSFont.systemFont(ofSize: 31, weight: .regular),
-        // --muted.
-        color: NSColor(srgbRed: 0xad / 255, green: 0xad / 255, blue: 0xb8 / 255, alpha: 1),
+    // The site's own tagline, `brand.tagline` in app/messages.ts, word for word.
+    // The card used to run a line of its own ("Paste an AI reply…") and that is
+    // one more place for the product to say two different things about itself.
+    // English only, and not because the audience is: og:image is fetched by the
+    // platform's crawler, not the reader's browser, and cached per URL — so a
+    // per-locale card would be picked by whoever shared the link first and then
+    // shown to everybody after them.
+    write(
+        "Catch them all. No more busywork 👋",
+        font: .systemFont(ofSize: 27, weight: .regular),
+        color: mutedText,
         tracking: 0,
-        baseline: 254
+        x: columnX,
+        bottom: 336
     )
 
-    // A band of the real thing, so the card shows the product's subject. This
-    // is the only element on the card that says "symbols" rather than "a name",
-    // and at alpha 0.30 it did not survive being recompressed by X or WeChat
-    // and shrunk to timeline size — the card read as a logo, not as a tool.
-    let band = ["square.and.arrow.up", "paperplane", "photo.artframe", "gift", "arrow.up.circle", "hand.wave"]
-    let cell: CGFloat = 96
-    let spacing: CGFloat = 30
-    let bandWidth = CGFloat(band.count) * cell + CGFloat(band.count - 1) * spacing
-    var x = canvas.width / 2 - bandWidth / 2
-    for symbol in band {
-        draw(
-            symbol: symbol,
-            rect: NSRect(x: x, y: 92, width: cell, height: cell),
-            color: NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.55)
-        )
-        x += cell + spacing
+    // The three names from the reply, drawn. 0.927 is the same fraction the mask
+    // pipeline uses inside its 192px canvas, so a symbol here is exactly the size
+    // the same symbol is on a result tile.
+    let bleed = glyphSide * (1 - 0.927) / 2
+    for (index, name) in names.enumerated() {
+        let cell = place(columnX + CGFloat(index) * glyphPitch, 386, glyphSide, glyphSide)
+        draw(symbol: name, rect: cell.insetBy(dx: bleed, dy: bleed), color: .white)
     }
 
     context.flushGraphics()
